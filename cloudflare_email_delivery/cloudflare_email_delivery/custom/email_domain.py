@@ -1,9 +1,55 @@
+# Copyright (c) 2026, Avunu LLC
+
 import json
 from email import policy
 from email.parser import Parser
+from typing import TYPE_CHECKING, cast
 
 import frappe
 import requests
+from frappe import _
+from frappe.email.doctype.email_account.email_account import EmailAccount
+from frappe.email.doctype.email_domain.email_domain import (
+	EmailDomain as BaseEmailDomain,
+)
+
+
+class EmailDomain(BaseEmailDomain):
+	if TYPE_CHECKING:
+		from frappe.types import DF
+
+		cf_account_id: DF.Data
+		cf_api_token: DF.Password
+		send_via_cloudflare: DF.Check
+
+	def validate_outgoing_server_conn(self):
+		"""If send_via_cloudflare is enabled, verify the Cloudflare API token
+		instead of attempting an SMTP connection."""
+		if not self.send_via_cloudflare:
+			return super().validate_outgoing_server_conn()
+
+		account_id = self.cf_account_id
+		api_token = self.get_password("cf_api_token")
+
+		if not account_id or not api_token:
+			frappe.throw(
+				_("Cloudflare Account ID and API Token are required when Send via Cloudflare is enabled.")
+			)
+
+		response = requests.get(
+			"https://api.cloudflare.com/client/v4/user/tokens/verify",
+			headers={"Authorization": f"Bearer {api_token}"},
+			timeout=15,
+		)
+
+		data = response.json()
+		if response.status_code != 200 or not data.get("success"):
+			errors = data.get("errors", [])
+			error_msg = "; ".join(e.get("message", "") for e in errors) if errors else response.text
+			frappe.throw(
+				_("Cloudflare API token validation failed: {0}").format(error_msg),
+				title=_("Outgoing email account not correct"),
+			)
 
 
 def get_cloudflare_settings(sender: str) -> dict | None:
@@ -11,13 +57,16 @@ def get_cloudflare_settings(sender: str) -> dict | None:
 
 	Returns None if Cloudflare sending is not enabled for this domain.
 	"""
-	email_account = frappe.get_doc("Email Account", {"email_id": sender, "enable_outgoing": 1})
+	email_account = cast(
+		EmailAccount,
+		frappe.get_doc("Email Account", {"email_id": sender, "enable_outgoing": 1}),  # type: ignore
+	)
 	domain_name = email_account.domain
 
 	if not domain_name:
 		return None
 
-	domain = frappe.get_doc("Email Domain", domain_name)
+	domain = cast(EmailDomain, frappe.get_doc("Email Domain", domain_name))
 
 	if not domain.send_via_cloudflare:
 		return None
@@ -96,6 +145,10 @@ def send(email_queue_doc, sender: str, recipient: str, message: str):
 				if content:
 					import base64
 
+					if isinstance(content, str):
+						content = content.encode("utf-8")
+					elif not isinstance(content, (bytes, bytearray, memoryview)):
+						content = bytes(content)
 					attachments.append(
 						{
 							"filename": part.get_filename() or "attachment",
