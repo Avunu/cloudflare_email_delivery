@@ -14,5 +14,6 @@ app_title = "Cloudflare Email Delivery"
 app_version = __version__
 override_doctype_class = {
 	"Email Domain": "cloudflare_email_delivery.cloudflare_email_delivery.custom.email_domain.EmailDomain",
+	"Email Account": "cloudflare_email_delivery.cloudflare_email_delivery.custom.email_account.EmailAccount",
 }
 override_email_send = ["cloudflare_email_delivery.cloudflare_email_delivery.custom.email_domain.send"]
