@@ -62,9 +62,15 @@ def get_cloudflare_settings(sender: str) -> dict | None:
 
 	Returns None if Cloudflare sending is not enabled for this domain.
 	"""
+	from frappe.utils import parse_addr
+
+	_, email_id = parse_addr(sender)
+	if not email_id:
+		return None
+
 	email_account = cast(
 		EmailAccount,
-		frappe.get_doc("Email Account", {"email_id": sender, "enable_outgoing": 1}),  # type: ignore
+		frappe.get_doc("Email Account", {"email_id": email_id, "enable_outgoing": 1}),  # type: ignore
 	)
 	domain_name = email_account.domain
 
