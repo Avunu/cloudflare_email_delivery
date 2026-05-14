@@ -114,6 +114,9 @@ def send(email_queue_doc, sender: str, recipient: str, message: str):
 	if not settings:
 		return send_via_smtp(email_queue_doc, sender, recipient, message)
 
+	if isinstance(message, bytes):
+		message = message.decode("utf-8", errors="replace")
+
 	parsed = Parser(policy=policy.default).parsestr(message)
 
 	payload = {
