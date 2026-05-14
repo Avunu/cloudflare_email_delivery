@@ -12,15 +12,20 @@ from frappe.email.doctype.email_account.email_account import EmailAccount
 from frappe.email.doctype.email_domain.email_domain import (
 	EmailDomain as BaseEmailDomain,
 )
+from frappe.types import DF
 
 
 class EmailDomain(BaseEmailDomain):
 	if TYPE_CHECKING:
-		from frappe.types import DF
-
 		cf_account_id: DF.Data
 		cf_api_token: DF.Password
 		send_via_cloudflare: DF.Check
+
+	def validate_incoming_server_conn(self):
+		"""Skip incoming server validation when send_via_cloudflare is enabled,
+		since the domain may be used for outgoing only."""
+		if not self.send_via_cloudflare:
+			return super().validate_incoming_server_conn()
 
 	def validate_outgoing_server_conn(self):
 		"""If send_via_cloudflare is enabled, verify the Cloudflare API token
