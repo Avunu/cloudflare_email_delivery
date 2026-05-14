@@ -1,0 +1,87 @@
+{
+    "custom_fields": [
+        {
+            "dt": "Email Domain",
+            "fieldname": "cloudflare_email_section",
+            "fieldtype": "Section Break",
+            "insert_after": "sent_folder_name",
+            "label": "Cloudflare Email Sending",
+            "module": "Cloudflare Email Delivery"
+        },
+        {
+            "dt": "Email Domain",
+            "fieldname": "send_via_cloudflare",
+            "fieldtype": "Check",
+            "insert_after": "cloudflare_email_section",
+            "label": "Send via Cloudflare",
+            "module": "Cloudflare Email Delivery"
+        },
+        {
+            "dt": "Email Domain",
+            "fieldname": "cf_account_id",
+            "fieldtype": "Data",
+            "insert_after": "send_via_cloudflare",
+            "label": "Cloudflare Account ID",
+            "depends_on": "eval:doc.send_via_cloudflare",
+            "mandatory_depends_on": "eval:doc.send_via_cloudflare",
+            "module": "Cloudflare Email Delivery"
+        },
+        {
+            "dt": "Email Domain",
+            "fieldname": "cf_column_break",
+            "fieldtype": "Column Break",
+            "insert_after": "cf_account_id",
+            "module": "Cloudflare Email Delivery"
+        },
+        {
+            "dt": "Email Domain",
+            "fieldname": "cf_api_token",
+            "fieldtype": "Password",
+            "insert_after": "cf_column_break",
+            "label": "Cloudflare API Token",
+            "depends_on": "eval:doc.send_via_cloudflare",
+            "mandatory_depends_on": "eval:doc.send_via_cloudflare",
+            "module": "Cloudflare Email Delivery"
+        }
+    ],
+    "doctype": "Email Domain",
+    "property_setters": [
+        {
+            "doc_type": "Email Domain",
+            "doctype_or_field": "DocField",
+            "field_name": "email_server",
+            "module": "Cloudflare Email Delivery",
+            "property": "reqd",
+            "property_type": "Check",
+            "value": "0"
+        },
+        {
+            "doc_type": "Email Domain",
+            "doctype_or_field": "DocField",
+            "field_name": "email_server",
+            "module": "Cloudflare Email Delivery",
+            "property": "mandatory_depends_on",
+            "property_type": "Data",
+            "value": "eval:!doc.send_via_cloudflare"
+        },
+        {
+            "doc_type": "Email Domain",
+            "doctype_or_field": "DocField",
+            "field_name": "smtp_server",
+            "module": "Cloudflare Email Delivery",
+            "property": "reqd",
+            "property_type": "Check",
+            "value": "0"
+        },
+        {
+            "doc_type": "Email Domain",
+            "doctype_or_field": "DocField",
+            "field_name": "smtp_server",
+            "module": "Cloudflare Email Delivery",
+            "property": "mandatory_depends_on",
+            "property_type": "Data",
+            "value": "eval:!doc.send_via_cloudflare"
+        }
+    ],
+    "sync_on_migrate": 1
+}

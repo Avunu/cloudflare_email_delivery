@@ -1,0 +1,18 @@
+include MANIFEST.in
+include requirements.txt
+include *.json
+include *.md
+include *.py
+include *.txt
+recursive-include cloudflare_email_delivery *.css
+recursive-include cloudflare_email_delivery *.csv
+recursive-include cloudflare_email_delivery *.html
+recursive-include cloudflare_email_delivery *.ico
+recursive-include cloudflare_email_delivery *.js
+recursive-include cloudflare_email_delivery *.json
+recursive-include cloudflare_email_delivery *.md
+recursive-include cloudflare_email_delivery *.png
+recursive-include cloudflare_email_delivery *.py
+recursive-include cloudflare_email_delivery *.svg
+recursive-include cloudflare_email_delivery *.txt
+recursive-exclude cloudflare_email_delivery *.pyc

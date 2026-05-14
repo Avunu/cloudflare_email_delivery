@@ -1,0 +1,98 @@
+exclude: "node_modules|.git"
+default_stages: [pre-commit]
+fail_fast: false
+
+repos:
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v6.0.0
+    hooks:
+      - id: trailing-whitespace
+        files: "cloudflare_email_delivery.*"
+        exclude: ".*json$|.*txt$|.*csv|.*md|.*svg"
+      - id: check-merge-conflict
+      - id: check-ast
+      - id: check-json
+      - id: check-toml
+      - id: check-yaml
+      - id: debug-statements
+
+  - repo: https://github.com/asottile/pyupgrade
+    rev: v3.21.2
+    hooks:
+      - id: pyupgrade
+        args: ['--py312-plus']
+
+  # ssort to sort methods source files
+  - repo: https://github.com/bwhmather/ssort
+    rev: 0.16.0
+    hooks:
+      - id: ssort
+        # Exclude auto-generated Frappe DocType files
+        exclude: '/doctype/[^/]+/[^/]+\.py$'
+
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.15.12
+    hooks:
+      - id: ruff
+        name: "Run ruff import sorter"
+        args: ["--select=I", "--fix"]
+
+      - id: ruff
+        name: "Run ruff linter"
+
+      - id: ruff-format
+        name: "Run ruff formatter"
+
+  - repo: https://github.com/oxc-project/mirrors-oxfmt
+    rev: v0.45.0
+    hooks:
+      - id: oxfmt
+        files: "cloudflare_email_delivery.*"
+        types_or: [javascript, vue, scss]
+        exclude: |
+          (?x)^(
+              .*boilerplate.*|
+              .*node_modules.*|
+              cloudflare_email_delivery/public/dist/.*|
+              cloudflare_email_delivery/public/js/lib/.*
+              cloudflare_email_delivery/templates/includes/.*|
+          )$
+
+  - repo: https://github.com/oxc-project/mirrors-oxlint
+    rev: v1.60.0
+    hooks:
+      - id: oxlint
+        args: ["--quiet"]
+        exclude: |
+          (?x)^(
+              .*boilerplate.*|
+              .*node_modules.*|
+              cloudflare_email_delivery/public/dist/.*|
+              cloudflare_email_delivery/public/js/lib/.*|
+              cloudflare_email_delivery/templates/includes/.*|
+              cypress/.*|
+          )$
+
+  - repo: https://github.com/agritheory/test_utils
+    rev: v1.25.1
+    hooks:
+      # - id: update_pre_commit_config
+      - id: validate_frappe_project
+      - id: validate_copyright
+        files: '\.(js|ts|py|md)$'
+        args: ['--app', 'cloudflare_email_delivery']
+      - id: bylines
+        exclude: 'README.md|CHANGELOG.md'
+      - id: clean_customized_doctypes
+        args: ['--app', 'cloudflare_email_delivery']
+      - id: validate_customizations
+        args: ['--app', 'cloudflare_email_delivery']
+      - id: validate_patches
+        args: ['--app', 'cloudflare_email_delivery']
+      - id: check_code_duplication
+        args: ['--max-clones', '60', '--max-percentage', '5.0']
+
+ci:
+  autoupdate_schedule: weekly
+  skip: []
+  submodules: false

@@ -1,0 +1,9 @@
+.DS_Store
+*.egg-info
+*.pyc
+*.swp
+avunu/docs/current
+dist
+node_modules/
+tags
+test_*.py

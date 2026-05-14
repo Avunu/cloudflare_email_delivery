@@ -1,0 +1,1 @@
+Use Cloudflare email sending as the backend email relay for a Frappe site.
