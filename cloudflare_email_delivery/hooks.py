@@ -4,8 +4,8 @@
 from . import __version__
 
 app_color = "grey"
-app_description = "Send outgoing email via Cloudflare Email Sending API"
-app_email = "mail@cloudflare_email_delivery.net"
+app_description = "Send and receive email via Cloudflare Email Sending and the Cloudflare email relay"
+app_email = "mail@avu.nu"
 app_icon = "octicon octicon-file-directory"
 app_license = "MIT"
 app_name = "cloudflare_email_delivery"
@@ -17,3 +17,4 @@ override_doctype_class = {
 	"Email Account": "cloudflare_email_delivery.cloudflare_email_delivery.custom.email_account.EmailAccount",
 }
 override_email_send = ["cloudflare_email_delivery.cloudflare_email_delivery.custom.email_domain.send"]
+doctype_js = {"Email Account": "public/js/email_account.js"}

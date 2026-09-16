@@ -1,0 +1,152 @@
+{
+    "custom_fields": [
+        {
+            "description": "Set from the Email Domain: outbound goes to the Cloudflare Email Sending API, inbound arrives from the Cloudflare email relay.",
+            "dt": "Email Account",
+            "fetch_from": "domain.send_via_cloudflare",
+            "fieldname": "cf_enabled",
+            "fieldtype": "Check",
+            "hidden": 1,
+            "insert_after": "domain",
+            "label": "Cloudflare Enabled",
+            "module": "Cloudflare Email Delivery",
+            "no_copy": 1,
+            "read_only": 1
+        },
+        {
+            "depends_on": "eval:doc.cf_enabled && doc.enable_incoming",
+            "dt": "Email Account",
+            "fieldname": "cf_receiving_section",
+            "fieldtype": "Section Break",
+            "insert_after": "last_received_at",
+            "label": "Cloudflare Email Receiving",
+            "module": "Cloudflare Email Delivery"
+        },
+        {
+            "description": "Give this to the relay fleet's onboarding as the tenant's <code>inboundUrl</code>. Built from <code>host_name</code> in the site config; it embeds the key below.",
+            "dt": "Email Account",
+            "fieldname": "cf_webhook_url",
+            "fieldtype": "Data",
+            "insert_after": "cf_receiving_section",
+            "label": "Webhook URL",
+            "length": 512,
+            "module": "Cloudflare Email Delivery",
+            "no_copy": 1,
+            "read_only": 1
+        },
+        {
+            "dt": "Email Account",
+            "fieldname": "cf_webhook_key",
+            "fieldtype": "Data",
+            "insert_after": "cf_webhook_url",
+            "label": "Webhook Key",
+            "length": 64,
+            "module": "Cloudflare Email Delivery",
+            "no_copy": 1,
+            "read_only": 1,
+            "search_index": 1
+        },
+        {
+            "dt": "Email Account",
+            "fieldname": "cf_column_break_wh",
+            "fieldtype": "Column Break",
+            "insert_after": "cf_webhook_key",
+            "module": "Cloudflare Email Delivery"
+        },
+        {
+            "description": "The relay signs every delivery with this (the tenant's <code>secret</code>). Use <em>Copy Webhook Secret</em> / <em>Regenerate Webhook Secret</em> (System Manager).",
+            "dt": "Email Account",
+            "fieldname": "cf_webhook_secret",
+            "fieldtype": "Password",
+            "insert_after": "cf_column_break_wh",
+            "label": "Webhook Secret",
+            "module": "Cloudflare Email Delivery",
+            "no_copy": 1,
+            "read_only": 1
+        },
+        {
+            "dt": "Email Account",
+            "fieldname": "cf_webhook_help",
+            "fieldtype": "HTML",
+            "insert_after": "cf_webhook_secret",
+            "module": "Cloudflare Email Delivery",
+            "options": "<p>Every inbound message is posted to the Webhook URL as <code>message/rfc822</code> with <code>X-Email-Relay-Id</code>, <code>-Tenant</code>, <code>-Timestamp</code> (Unix seconds, &plusmn;300 s), <code>-Signature</code> (<code>v1=</code> hex HMAC-SHA256 over <code>&lt;timestamp&gt;.</code> + body), <code>-Envelope-From</code>/<code>-To</code> and <code>-Attempt</code>. Answers: 200 delivered, 401 bad signature, 404 unknown key or account disabled, 422 refused (wrong domain, invalid message), 500 retried by the relay.</p>"
+        }
+    ],
+    "doctype": "Email Account",
+    "property_setters": [
+        {
+            "doc_type": "Email Account",
+            "doctype_or_field": "DocField",
+            "field_name": "mailbox_settings",
+            "module": "Cloudflare Email Delivery",
+            "property": "depends_on",
+            "property_type": "Data",
+            "value": "eval: doc.service != \"Frappe Mail\" && !doc.cf_enabled"
+        },
+        {
+            "doc_type": "Email Account",
+            "doctype_or_field": "DocField",
+            "field_name": "outgoing_mail_settings",
+            "module": "Cloudflare Email Delivery",
+            "property": "depends_on",
+            "property_type": "Data",
+            "value": "eval: doc.service != \"Frappe Mail\" && !doc.cf_enabled"
+        },
+        {
+            "doc_type": "Email Account",
+            "doctype_or_field": "DocField",
+            "field_name": "password",
+            "module": "Cloudflare Email Delivery",
+            "property": "depends_on",
+            "property_type": "Data",
+            "value": "eval: doc.auth_method === \"Basic\" && doc.service != \"Frappe Mail\" && !doc.cf_enabled"
+        },
+        {
+            "doc_type": "Email Account",
+            "doctype_or_field": "DocField",
+            "field_name": "awaiting_password",
+            "module": "Cloudflare Email Delivery",
+            "property": "depends_on",
+            "property_type": "Data",
+            "value": "eval: doc.auth_method === \"Basic\" && doc.service != \"Frappe Mail\" && !doc.cf_enabled"
+        },
+        {
+            "doc_type": "Email Account",
+            "doctype_or_field": "DocField",
+            "field_name": "ascii_encode_password",
+            "module": "Cloudflare Email Delivery",
+            "property": "depends_on",
+            "property_type": "Data",
+            "value": "eval: doc.auth_method === \"Basic\" && doc.service != \"Frappe Mail\" && !doc.cf_enabled"
+        },
+        {
+            "doc_type": "Email Account",
+            "doctype_or_field": "DocField",
+            "field_name": "use_imap",
+            "module": "Cloudflare Email Delivery",
+            "property": "depends_on",
+            "property_type": "Data",
+            "value": "eval:!doc.cf_enabled"
+        },
+        {
+            "doc_type": "Email Account",
+            "doctype_or_field": "DocField",
+            "field_name": "imap_folder",
+            "module": "Cloudflare Email Delivery",
+            "property": "depends_on",
+            "property_type": "Data",
+            "value": "eval:doc.use_imap && !doc.cf_enabled"
+        },
+        {
+            "doc_type": "Email Account",
+            "doctype_or_field": "DocField",
+            "field_name": "email_sync_option",
+            "module": "Cloudflare Email Delivery",
+            "property": "depends_on",
+            "property_type": "Data",
+            "value": "eval:doc.use_imap && !doc.cf_enabled"
+        }
+    ],
+    "sync_on_migrate": 1
+}

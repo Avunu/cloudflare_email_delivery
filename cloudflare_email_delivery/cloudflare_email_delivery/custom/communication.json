@@ -1,0 +1,21 @@
+{
+    "custom_fields": [
+        {
+            "dt": "Communication",
+            "fieldname": "cf_relay_id",
+            "fieldtype": "Data",
+            "hidden": 1,
+            "insert_after": "uid",
+            "label": "Relay Id",
+            "length": 26,
+            "module": "Cloudflare Email Delivery",
+            "no_copy": 1,
+            "read_only": 1,
+            "search_index": 1,
+            "description": "The Cloudflare email relay's id for the delivery that created this Communication; deduplicates retries of a message without a Message-ID."
+        }
+    ],
+    "doctype": "Communication",
+    "property_setters": [],
+    "sync_on_migrate": 1
+}

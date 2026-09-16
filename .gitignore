@@ -6,4 +6,3 @@ avunu/docs/current
 dist
 node_modules/
 tags
-test_*.py
