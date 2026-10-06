@@ -127,8 +127,6 @@ contract documented in the relay's README.
 
 - [`Avunu/cloudflare-email-relay`](https://github.com/Avunu/cloudflare-email-relay) — the Worker
   and the full wire contract.
-- [`Avunu/cloudflare-email-workers`](https://github.com/Avunu/cloudflare-email-workers) — the fleet
-  that deploys it and onboards tenants.
 
 ## Part of the Cloudflare Email suite
 
