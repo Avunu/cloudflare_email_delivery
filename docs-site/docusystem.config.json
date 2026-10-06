@@ -1,0 +1,10 @@
+{
+  "$schema": "./node_modules/@avunu/docusystem/config.schema.json",
+  "name": "Cloudflare Email Delivery",
+  "tagline": "Send and receive Frappe and ERPNext email through Cloudflare, with no SMTP or IMAP provider in the loop.",
+  "slug": "cloudflare_email_delivery",
+  "platform": "frappe",
+  "repo": "https://github.com/Avunu/cloudflare_email_delivery",
+  "domain": "cloudflare-email-delivery.avunu.net",
+  "license": "MIT"
+}
