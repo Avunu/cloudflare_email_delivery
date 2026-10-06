@@ -6,6 +6,8 @@ authors = [
 description = "Send and receive email via Cloudflare Email Sending and the Cloudflare email relay"
 requires-python = ">=3.12"
 readme = "README.md"
+license = { text = "MIT" }
+classifiers = ["License :: OSI Approved :: MIT License"]
 dynamic = ["version"]
 dependencies = []
 
