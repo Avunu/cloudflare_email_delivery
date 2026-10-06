@@ -132,10 +132,11 @@ contract documented in the relay's README.
 
 ## Part of the Cloudflare Email suite
 
-Four open-source projects work together to give business systems email without SMTP credentials or IMAP polling:
+Four open-source projects work together to give business systems email without SMTP credentials or
+IMAP polling:
 
 | Project | Role |
-|---|---|
+| --- | --- |
 | [cloudflare-email-relay](https://github.com/Avunu/cloudflare-email-relay) | Multi-tenant inbound Worker: stores each message in R2, then delivers it to the right system with signed, retried requests |
 | [cloudflare_email_delivery](https://github.com/Avunu/cloudflare_email_delivery) | Frappe and ERPNext adapter |
 | [mail_cloudflare](https://github.com/Avunu/avunu-odoo-addons/tree/18.0/mail_cloudflare) | Odoo adapter |
