@@ -4,5 +4,5 @@
 *.swp
 avunu/docs/current
 dist
-node_modules/
+node_modules
 tags
