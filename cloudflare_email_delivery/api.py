@@ -14,6 +14,7 @@ traceback body, and 417 would be read as a permanent rejection.
 
 import email
 import email.policy
+from typing import cast
 
 import frappe
 from frappe import _
@@ -21,6 +22,10 @@ from frappe.email.receive import SentEmailInInboxError
 from frappe.utils.password import set_encrypted_password
 
 from cloudflare_email_delivery import relay
+from cloudflare_email_delivery.cloudflare_email_delivery.custom.email_account import (
+	CloudflareEmailAccount,
+	new_token,
+)
 from cloudflare_email_delivery.inbound import RelayInboundMail
 
 INBOUND_METHOD = "cloudflare_email_delivery.api.inbound"
@@ -32,14 +37,15 @@ def _respond(status: int, **values):
 	return {"ok": status == 200, **values}
 
 
-def _find_account(key: str | None):
+def _find_account(key: str | None) -> CloudflareEmailAccount | None:
 	"""The enabled, Cloudflare-domain Email Account behind ``key``, or ``None``."""
 	if not key:
 		return None
 	name = frappe.db.get_value("Email Account", {"cf_webhook_key": key, "enable_incoming": 1}, "name")
 	if not name:
 		return None
-	account = frappe.get_doc("Email Account", name)
+	# extend_doctype_class composes the controller at runtime; the cast names our layer.
+	account = cast(CloudflareEmailAccount, frappe.get_doc("Email Account", name))
 	if not account._is_cloudflare_domain():
 		return None
 	return account
@@ -159,9 +165,9 @@ def inbound(key: str | None = None):
 		return _respond(500, error="internal error")
 
 
-def _account_for_desk(email_account: str):
+def _account_for_desk(email_account: str) -> CloudflareEmailAccount:
 	frappe.only_for("System Manager")
-	account = frappe.get_doc("Email Account", email_account)
+	account = cast(CloudflareEmailAccount, frappe.get_doc("Email Account", email_account))
 	account.check_permission("write")
 	return account
 
@@ -180,8 +186,6 @@ def regenerate_webhook_secret(email_account: str) -> None:
 	account = _account_for_desk(email_account)
 	if not account._is_cloudflare_domain():
 		frappe.throw(_("{0} does not receive mail via Cloudflare.").format(account.name))
-	from cloudflare_email_delivery.cloudflare_email_delivery.custom.email_account import new_token
-
 	token = new_token()
 	set_encrypted_password("Email Account", account.name, token, "cf_webhook_secret")
 	# The same placeholder core writes for a stored password.

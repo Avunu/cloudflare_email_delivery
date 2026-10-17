@@ -12,9 +12,15 @@ app_name = "cloudflare_email_delivery"
 app_publisher = "Avunu LLC"
 app_title = "Cloudflare Email Delivery"
 app_version = __version__
-override_doctype_class = {
-	"Email Domain": "cloudflare_email_delivery.cloudflare_email_delivery.custom.email_domain.EmailDomain",
-	"Email Account": "cloudflare_email_delivery.cloudflare_email_delivery.custom.email_account.EmailAccount",
+# Extensions, not overrides: each class subclasses the stock controller and calls super(),
+# so it stacks with any other app that extends or overrides the same DocType.
+extend_doctype_class = {
+	"Email Domain": [
+		"cloudflare_email_delivery.cloudflare_email_delivery.custom.email_domain.CloudflareEmailDomain"
+	],
+	"Email Account": [
+		"cloudflare_email_delivery.cloudflare_email_delivery.custom.email_account.CloudflareEmailAccount"
+	],
 }
 override_email_send = ["cloudflare_email_delivery.cloudflare_email_delivery.custom.email_domain.send"]
 doctype_js = {"Email Account": "public/js/email_account.js"}

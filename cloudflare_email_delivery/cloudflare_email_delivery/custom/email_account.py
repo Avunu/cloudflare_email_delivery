@@ -23,7 +23,11 @@ def new_token() -> str:
 	return secrets.token_urlsafe(32)
 
 
-class EmailAccount(BaseEmailAccount):
+class CloudflareEmailAccount(BaseEmailAccount):
+	"""Registered with ``extend_doctype_class``: frappe stacks it on the stock (or
+	another app's overriding) controller, so every method here calls ``super()``
+	for an account whose domain does not use Cloudflare."""
+
 	if TYPE_CHECKING:
 		cf_enabled: DF.Check
 		cf_webhook_key: DF.Data | None
@@ -147,7 +151,12 @@ class EmailAccount(BaseEmailAccount):
 
 	def there_must_be_only_one_default(self):
 		"""Un-default all other accounts using db_set to avoid triggering
-		SMTP/IMAP validation on sibling accounts."""
+		SMTP/IMAP validation on sibling accounts.
+
+		This replaces core's version on purpose and does not call ``super()``: core
+		loads each sibling default account and saves it, which re-runs its
+		connection checks (and, for a Cloudflare account, would fail on the IMAP/SMTP
+		server it does not have)."""
 		for field in ("default_incoming", "default_outgoing"):
 			if not self.get(field):
 				continue
