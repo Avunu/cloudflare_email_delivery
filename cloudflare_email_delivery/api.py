@@ -82,7 +82,9 @@ def store_unhandled_email(account, uid: str | None, raw: bytes, reason: str) -> 
 	).insert(ignore_permissions=True)
 
 
-@frappe.whitelist(allow_guest=True, methods=["POST"])
+# Reviewed: the relay webhook has to accept guests. It is POST only, an unknown key gets a 404, and
+# nothing is processed until the HMAC over timestamp and body verifies against the account's secret.
+@frappe.whitelist(allow_guest=True, methods=["POST"])  # nosemgrep: guest-whitelisted-method
 def inbound(key: str | None = None):
 	relay_id = frappe.get_request_header(relay.HEADER_ID) or None
 	tenant = frappe.get_request_header(relay.HEADER_TENANT) or None
@@ -108,8 +110,10 @@ def inbound(key: str | None = None):
 		)
 		return _respond(401, error="invalid signature")
 
-	# Only now: the HMAC is the credential.
-	frappe.set_user("Administrator")
+	# Only now: the HMAC is the credential. Reviewed: core's InboundMail.process saves the attachments
+	# (File.save) and re-saves the Communication without ignore_permissions, which a Guest session fails.
+	# Core runs the same code as Administrator from the scheduler; this gives it that context.
+	frappe.set_user("Administrator")  # nosemgrep: frappe-setuser
 
 	try:
 		envelope_from = relay.check_envelope(
