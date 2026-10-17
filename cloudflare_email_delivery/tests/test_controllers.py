@@ -112,9 +112,12 @@ class TestEmailAccount(IntegrationTestCase):
 
 	def test_one_default_outgoing(self):
 		self.addCleanup(self.remove_second_default)
-		second = fixtures.ensure_account(
-			"_Test CF Outbound 2", f"other@{DOMAIN}", outgoing=True, default_outgoing=1
-		)
+		# Core's version loads and re-saves each sibling default; ours must not reach it.
+		with patch.object(EmailAccount, "there_must_be_only_one_default") as core_one_default:
+			second = fixtures.ensure_account(
+				"_Test CF Outbound 2", f"other@{DOMAIN}", outgoing=True, default_outgoing=1
+			)
+		core_one_default.assert_not_called()
 		self.assertEqual(frappe.db.get_value("Email Account", OUTBOUND_ACCOUNT, "default_outgoing"), 0)
 		self.assertEqual(frappe.db.get_value("Email Account", second.name, "default_outgoing"), 1)
 

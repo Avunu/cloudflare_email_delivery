@@ -11,9 +11,10 @@ from frappe.tests import IntegrationTestCase
 from cloudflare_email_delivery import api
 from cloudflare_email_delivery.cloudflare_email_delivery.custom.email_account import CloudflareEmailAccount
 from cloudflare_email_delivery.tests import fixtures
-from cloudflare_email_delivery.tests.fixtures import INBOUND_ACCOUNT
+from cloudflare_email_delivery.tests.fixtures import INBOUND_ACCOUNT, OUTBOUND_ACCOUNT
 
 SMTP_ACCOUNT = "_Test CF Desk SMTP"
+RESTRICTED_USER = "cf-desk-restricted@example.com"
 
 
 def get_account(name: str) -> CloudflareEmailAccount:
@@ -42,6 +43,32 @@ class TestDeskApi(IntegrationTestCase):
 
 	def test_only_a_system_manager(self):
 		frappe.set_user("Guest")
+		with self.assertRaises(frappe.PermissionError):
+			api.get_webhook_secret(INBOUND_ACCOUNT)
+		with self.assertRaises(frappe.PermissionError):
+			api.regenerate_webhook_secret(INBOUND_ACCOUNT)
+
+	def test_a_system_manager_needs_write_on_the_account(self):
+		"""Past the System Manager gate, the account's own write permission still applies:
+		a User Permission that limits this user to another account denies this one."""
+		frappe.get_doc(
+			{
+				"doctype": "User",
+				"email": RESTRICTED_USER,
+				"first_name": "CF Desk",
+				"send_welcome_email": 0,
+				"roles": [{"role": "System Manager"}],
+			}
+		).insert(ignore_permissions=True)
+		frappe.get_doc(
+			{
+				"doctype": "User Permission",
+				"user": RESTRICTED_USER,
+				"allow": "Email Account",
+				"for_value": OUTBOUND_ACCOUNT,
+			}
+		).insert(ignore_permissions=True)
+		frappe.set_user(RESTRICTED_USER)
 		with self.assertRaises(frappe.PermissionError):
 			api.get_webhook_secret(INBOUND_ACCOUNT)
 		with self.assertRaises(frappe.PermissionError):
