@@ -105,9 +105,9 @@ bench --site test_site run-tests --app cloudflare_email_delivery
 
 `tests/test_relay.py` and `tests/test_cloudflare_api.py` are plain `unittest` (no site needed:
 `python -m unittest cloudflare_email_delivery.tests.test_relay`). The site-backed suites cover the
-webhook (in-process and through the real WSGI app), threading and the send hook. On a frappe-nix dev
-bench the mail guard must be off for the process (`FRAPPE_DEVGUARD_DISABLE=mail`): it deliberately
-strips the very overrides these tests exercise.
+webhook (in-process and through the real WSGI app), threading and the send hook. The frappe-nix
+dev shell turns its mail guard off for this app (`nix/local.nix`): the guard deliberately strips the
+very extensions these tests exercise. Its egress guard stays on, so nothing leaves a dev bench.
 
 ## How it works
 
