@@ -25,8 +25,10 @@ def new_token() -> str:
 
 class CloudflareEmailAccount(BaseEmailAccount):
 	"""Registered with ``extend_doctype_class``: frappe stacks it on the stock (or
-	another app's overriding) controller, so every method here calls ``super()``
-	for an account whose domain does not use Cloudflare."""
+	another app's overriding) controller. Every method here except
+	``there_must_be_only_one_default`` calls ``super()`` for an account whose domain
+	does not use Cloudflare; that one replaces core's version for every account on
+	the site (see its docstring)."""
 
 	if TYPE_CHECKING:
 		cf_enabled: DF.Check
@@ -150,13 +152,15 @@ class CloudflareEmailAccount(BaseEmailAccount):
 		return super().get_incoming_server(in_receive, email_sync_rule)
 
 	def there_must_be_only_one_default(self):
-		"""Un-default all other accounts using db_set to avoid triggering
-		SMTP/IMAP validation on sibling accounts.
+		"""Un-default every other account with a direct database update.
 
-		This replaces core's version on purpose and does not call ``super()``: core
-		loads each sibling default account and saves it, which re-runs its
-		connection checks (and, for a Cloudflare account, would fail on the IMAP/SMTP
-		server it does not have)."""
+		This replaces core's version on purpose, for every account on the site
+		(Cloudflare or not), and does not call ``super()``. Core loads each sibling
+		default account and saves it, which re-runs that sibling's validation: for
+		an account that is not on a Cloudflare domain that means its SMTP/IMAP
+		connection checks, so saving a new default fails whenever a sibling's mail
+		server is unreachable. It also re-runs the sibling's permission checks and
+		save hooks. Clearing the flag in the database avoids all of that."""
 		for field in ("default_incoming", "default_outgoing"):
 			if not self.get(field):
 				continue
@@ -166,3 +170,9 @@ class CloudflareEmailAccount(BaseEmailAccount):
 				field,
 				0,
 			)
+
+
+# Unpickling shim: Email Account documents cached in Redis before the switch to
+# ``extend_doctype_class`` were pickled by reference to this module's ``EmailAccount``.
+# Remove in a later release, once every site has cleared its cache.
+EmailAccount = CloudflareEmailAccount

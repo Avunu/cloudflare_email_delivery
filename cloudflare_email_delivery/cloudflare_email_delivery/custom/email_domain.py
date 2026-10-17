@@ -52,6 +52,12 @@ class CloudflareEmailDomain(BaseEmailDomain):
 			)
 
 
+# Unpickling shim: Email Domain documents cached in Redis before the switch to
+# ``extend_doctype_class`` were pickled by reference to this module's ``EmailDomain``.
+# Remove in a later release, once every site has cleared its cache.
+EmailDomain = CloudflareEmailDomain
+
+
 def get_cloudflare_settings(email_account) -> dict | None:
 	"""``{"account_id", "api_token"}`` when the account's domain sends via Cloudflare,
 	else ``None``. Never raises for an account that simply is not ours."""
