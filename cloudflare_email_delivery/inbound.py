@@ -35,6 +35,15 @@ class RelayInboundMail(InboundMail):
 
 	_resolved_in_reply_to: str | None = None
 
+	def _resolve_in_reply_to(self) -> str:
+		candidates = self.candidate_message_ids()
+		for mid in candidates:
+			if is_known_message_id(mid):
+				return mid
+		# Nothing known: keep core's behaviour (its own fallback tries the local
+		# part of In-Reply-To as a Communication name).
+		return candidates[0] if candidates else ""
+
 	@property
 	def in_reply_to(self) -> str:
 		if self._resolved_in_reply_to is None:
@@ -52,12 +61,3 @@ class RelayInboundMail(InboundMail):
 				seen.add(mid)
 				out.append(mid)
 		return out
-
-	def _resolve_in_reply_to(self) -> str:
-		candidates = self.candidate_message_ids()
-		for mid in candidates:
-			if is_known_message_id(mid):
-				return mid
-		# Nothing known: keep core's behaviour (its own fallback tries the local
-		# part of In-Reply-To as a Communication name).
-		return candidates[0] if candidates else ""

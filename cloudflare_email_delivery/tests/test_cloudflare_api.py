@@ -74,31 +74,36 @@ def build(
 	return message
 
 
+def success(
+	delivered=None,
+	queued=None,
+	permanent_bounces=None,
+	suppressed_recipients=None,
+	message_id="cf-message-id",
+):
+	return (
+		200,
+		{
+			"success": True,
+			"errors": [],
+			"messages": [],
+			"result": {
+				"delivered": delivered or [],
+				"queued": queued or [],
+				"permanent_bounces": permanent_bounces or [],
+				"suppressed_recipients": suppressed_recipients or [],
+				"message_id": message_id,
+			},
+		},
+	)
+
+
 class ScriptedHttp:
 	"""A ``requests.Session`` stand-in serving a script of responses and recording requests."""
 
 	def __init__(self, responses=None):
 		self.script = list(responses or [])
 		self.requests = []
-
-	def request(self, method, url, **kwargs):
-		record = self._record(method, url, kwargs)
-		self.requests.append(record)
-		item = self.script.pop(0) if self.script else self._default(record)
-		if callable(item):
-			item = item(record)
-		if isinstance(item, BaseException):
-			raise item
-		return self._response(item, url)
-
-	def get(self, url, **kwargs):
-		return self.request("GET", url, **kwargs)
-
-	def post(self, url, **kwargs):
-		return self.request("POST", url, **kwargs)
-
-	def close(self):
-		pass
 
 	@staticmethod
 	def _record(method, url, kwargs):
@@ -119,11 +124,6 @@ class ScriptedHttp:
 			"json": payload,
 			"timeout": kwargs.get("timeout"),
 		}
-
-	@staticmethod
-	def recipients(record):
-		payload = record["json"] or {}
-		return [e["address"] for field in ("to", "cc", "bcc") for e in payload.get(field) or []]
 
 	@classmethod
 	def _default(cls, record):
@@ -160,29 +160,29 @@ class ScriptedHttp:
 		response._content = content
 		return response
 
+	def request(self, method, url, **kwargs):
+		record = self._record(method, url, kwargs)
+		self.requests.append(record)
+		item = self.script.pop(0) if self.script else self._default(record)
+		if callable(item):
+			item = item(record)
+		if isinstance(item, BaseException):
+			raise item
+		return self._response(item, url)
 
-def success(
-	delivered=None,
-	queued=None,
-	permanent_bounces=None,
-	suppressed_recipients=None,
-	message_id="cf-message-id",
-):
-	return (
-		200,
-		{
-			"success": True,
-			"errors": [],
-			"messages": [],
-			"result": {
-				"delivered": delivered or [],
-				"queued": queued or [],
-				"permanent_bounces": permanent_bounces or [],
-				"suppressed_recipients": suppressed_recipients or [],
-				"message_id": message_id,
-			},
-		},
-	)
+	def get(self, url, **kwargs):
+		return self.request("GET", url, **kwargs)
+
+	def post(self, url, **kwargs):
+		return self.request("POST", url, **kwargs)
+
+	def close(self):
+		pass
+
+	@staticmethod
+	def recipients(record):
+		payload = record["json"] or {}
+		return [e["address"] for field in ("to", "cc", "bcc") for e in payload.get(field) or []]
 
 
 def error(status, code, message, headers=None):
