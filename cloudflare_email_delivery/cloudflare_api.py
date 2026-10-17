@@ -483,49 +483,6 @@ class CloudflareSendingSession:
 		self._http = http or requests.Session()
 		self._fatal_error = None
 
-	# -- sending ------------------------------------------------------------
-
-	def send_message(self, message, smtp_from, smtp_to_list):
-		"""Send one prepared message; return Cloudflare's message id.
-
-		``smtp_from`` is deliberately unused: the envelope sender
-		(``Return-Path``) is reserved by Cloudflare, and the ``From`` header
-		is the address Frappe wants shown. The returned id is informational -
-		Frappe's ``Message-Id`` is what Email Queue and Communication store.
-		"""
-		if self._fatal_error is not None:
-			raise CloudflareEmailError(
-				f"Not retried: an earlier send in this batch failed with {self._fatal_error}",
-				status=self._fatal_error.status,
-				code=self._fatal_error.code,
-				fatal=True,
-			)
-		payload = build_payload(message, smtp_to_list)
-		body = json.dumps(payload, ensure_ascii=False).encode("utf-8")
-		if len(body) > MAX_BODY_BYTES:
-			raise CloudflareEmailError(
-				f"Message is {len(body) / 1024 / 1024:.1f} MiB once encoded; "
-				f"Cloudflare accepts at most {MAX_BODY_BYTES // 1024 // 1024} MiB."
-			)
-		result = self._post(body)
-		self._check_recipients(result, payload)
-		_logger.info(
-			"Cloudflare accepted %s as %s",
-			message["Message-Id"],
-			result.get("message_id"),
-		)
-		return result.get("message_id") or ""
-
-	def quit(self):
-		self.close()
-
-	def close(self):
-		"""Release the HTTP connection pool; never raises (called in cleanup)."""
-		try:
-			self._http.close()
-		except Exception:
-			_logger.debug("Ignoring error while closing the Cloudflare session")
-
 	# -- internals ------------------------------------------------------------
 
 	def _post(self, body):
@@ -617,3 +574,46 @@ class CloudflareSendingSession:
 			result.get("message_id"),
 			detail,
 		)
+
+	# -- sending ------------------------------------------------------------
+
+	def send_message(self, message, smtp_from, smtp_to_list):  # frappe-vulture:ignore
+		"""Send one prepared message; return Cloudflare's message id.
+
+		``smtp_from`` is deliberately unused: the envelope sender
+		(``Return-Path``) is reserved by Cloudflare, and the ``From`` header
+		is the address Frappe wants shown. The returned id is informational -
+		Frappe's ``Message-Id`` is what Email Queue and Communication store.
+		"""
+		if self._fatal_error is not None:
+			raise CloudflareEmailError(
+				f"Not retried: an earlier send in this batch failed with {self._fatal_error}",
+				status=self._fatal_error.status,
+				code=self._fatal_error.code,
+				fatal=True,
+			)
+		payload = build_payload(message, smtp_to_list)
+		body = json.dumps(payload, ensure_ascii=False).encode("utf-8")
+		if len(body) > MAX_BODY_BYTES:
+			raise CloudflareEmailError(
+				f"Message is {len(body) / 1024 / 1024:.1f} MiB once encoded; "
+				f"Cloudflare accepts at most {MAX_BODY_BYTES // 1024 // 1024} MiB."
+			)
+		result = self._post(body)
+		self._check_recipients(result, payload)
+		_logger.info(
+			"Cloudflare accepted %s as %s",
+			message["Message-Id"],
+			result.get("message_id"),
+		)
+		return result.get("message_id") or ""
+
+	def quit(self):
+		self.close()
+
+	def close(self):
+		"""Release the HTTP connection pool; never raises (called in cleanup)."""
+		try:
+			self._http.close()
+		except Exception:
+			_logger.debug("Ignoring error while closing the Cloudflare session")

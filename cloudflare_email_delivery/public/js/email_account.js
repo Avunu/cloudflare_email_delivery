@@ -14,7 +14,7 @@ frappe.ui.form.on("Email Account", {
 		frm.add_custom_button(
 			__("Copy Webhook URL"),
 			() => frappe.utils.copy_to_clipboard(frm.doc.cf_webhook_url),
-			group
+			group,
 		);
 		if (!frappe.user.has_role("System Manager")) {
 			return;
@@ -28,14 +28,14 @@ frappe.ui.form.on("Email Account", {
 						args: { email_account: frm.doc.name },
 					})
 					.then((r) => frappe.utils.copy_to_clipboard(r.message)),
-			group
+			group,
 		);
 		frm.add_custom_button(
 			__("Regenerate Webhook Secret"),
 			() =>
 				frappe.confirm(
 					__(
-						"Requests signed with the current secret will be rejected until the relay's tenant secret is updated. Continue?"
+						"Requests signed with the current secret will be rejected until the relay's tenant secret is updated. Continue?",
 					),
 					() =>
 						frappe
@@ -43,9 +43,9 @@ frappe.ui.form.on("Email Account", {
 								method: "cloudflare_email_delivery.api.regenerate_webhook_secret",
 								args: { email_account: frm.doc.name },
 							})
-							.then(() => frm.reload_doc())
+							.then(() => frm.reload_doc()),
 				),
-			group
+			group,
 		);
 	},
 });
