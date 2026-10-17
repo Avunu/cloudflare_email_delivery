@@ -77,13 +77,17 @@ bulk-retried).
 | Response                                                                 | Meaning                                                                                              | Relay reaction        |
 | ------------------------------------------------------------------------ | ---------------------------------------------------------------------------------------------------- | --------------------- |
 | `200 {"message": {"ok": true, "remote_ref": "<Communication>" or null}}` | processed (`null`: our own mail looped back, deliberately ignored)                                   | delivered             |
-| `401`                                                                    | bad or missing signature, stale timestamp                                                            | parked as rejected    |
-| `404`                                                                    | unknown key, or incoming disabled on the account                                                     | parked as rejected    |
+| `401`                                                                    | unknown key, incoming disabled, bad or missing signature, stale timestamp                            | parked as rejected    |
+| `413`                                                                    | larger than 26 MiB (or the site's `max_file_size`, when lower)                                       | parked as rejected    |
 | `422`                                                                    | recipient domain not this account's, invalid envelope, or the reference document refused the message | parked as rejected    |
 | `500`                                                                    | anything else — logged to Error Log and stored as an Unhandled Email                                 | retried with back-off |
+| `503`                                                                    | the relay user is missing: the site needs `bench migrate`                                            | retried with back-off |
 
-The endpoint is a guest method; the HMAC is the credential. A message larger than the site's
-`max_file_size` (25 MiB by default) is refused by the web server before it reaches the app.
+The endpoint is a guest method; the HMAC is the credential, checked in constant time. A `401`
+says nothing about which check failed. Once the signature verifies, the message is processed as
+`cloudflare-email-relay@relay.invalid`, a disabled Website User whose only role, _Cloudflare Email
+Relay_, adds one permission rule: read and write the Communications it owns. `bench migrate`
+creates the user and resets it to that shape; nothing runs as Administrator.
 
 ## Limitations
 
@@ -118,6 +122,7 @@ strips the very overrides these tests exercise.
 | `override_email_send` → `email_domain.send` | the Email Sending API call, with Frappe Mail / SMTP fallback for other accounts                |
 | `doctype_js` → `email_account.js`           | the copy / regenerate buttons                                                                  |
 | `api.inbound`                               | the webhook                                                                                    |
+| `after_install` / `after_migrate`           | create the relay user, role and permission rule, or reset them to least privilege              |
 
 `cloudflare_api.py` (the API client) is shared with the Odoo module `mail_cloudflare` in
 [Avunu/avunu-odoo-addons](https://github.com/Avunu/avunu-odoo-addons); `relay.py` implements the

@@ -6,7 +6,7 @@ for the Email Account's webhook credentials.
 ``POST /api/method/cloudflare_email_delivery.api.inbound?key=<key>`` with the raw
 RFC 5322 message as the body (``Content-Type: message/rfc822``), signed as the
 relay's README describes. The status code is the contract with the relay's
-retry queue: 2xx delivered, 401/404/422 permanent (parked as ``rejected``, no
+retry queue: 2xx delivered, 401/413/422 permanent (parked as ``rejected``, no
 retry), anything else retried with back-off. Nothing here ever raises out of
 the request: an uncaught exception would become Frappe's 417/500 with a
 traceback body, and 417 would be read as a permanent rejection.
@@ -27,8 +27,14 @@ from cloudflare_email_delivery.cloudflare_email_delivery.custom.email_account im
 	new_token,
 )
 from cloudflare_email_delivery.inbound import RelayInboundMail
+from cloudflare_email_delivery.relay_user import RELAY_USER, RelayUserMissing, acting_as_relay_user
 
 INBOUND_METHOD = "cloudflare_email_delivery.api.inbound"
+# Cloudflare Email Routing accepts messages up to 25 MiB; the relay prepends the envelope headers.
+# The site's own request cap (max_file_size) applies first when it is lower.
+MAX_MESSAGE_BYTES = 26 * 1024 * 1024
+# The one answer for an unknown key and a bad signature: a probe can't tell which it got.
+UNAUTHORIZED = "unauthorized"
 
 
 def _respond(status: int, **values):
@@ -82,54 +88,8 @@ def store_unhandled_email(account, uid: str | None, raw: bytes, reason: str) -> 
 	).insert(ignore_permissions=True)
 
 
-# Reviewed: the relay webhook has to accept guests. It is POST only, an unknown key gets a 404, and
-# nothing is processed until the HMAC over timestamp and body verifies against the account's secret.
-@frappe.whitelist(allow_guest=True, methods=["POST"])  # nosemgrep: guest-whitelisted-method
-def inbound(key: str | None = None):
-	relay_id = frappe.get_request_header(relay.HEADER_ID) or None
-	tenant = frappe.get_request_header(relay.HEADER_TENANT) or None
-
-	account = _find_account(key)
-	if account is None:
-		frappe.logger("cloudflare_email_delivery").warning(
-			f"relay inbound {relay_id} (tenant {tenant}): no enabled account for key {str(key)[:8]}..."
-		)
-		return _respond(404, error="unknown webhook key")
-
-	body = frappe.request.get_data()
-	secret = account.get_password("cf_webhook_secret", raise_exception=False)
-	if not relay.verify_signature(
-		secret,
-		frappe.get_request_header(relay.HEADER_TIMESTAMP),
-		frappe.get_request_header(relay.HEADER_SIGNATURE),
-		body,
-	):
-		# No detail on purpose: a probe learns nothing about which check failed.
-		frappe.logger("cloudflare_email_delivery").warning(
-			f"relay inbound {relay_id}: signature verification failed on {account.name}"
-		)
-		return _respond(401, error="invalid signature")
-
-	# Only now: the HMAC is the credential. Reviewed: core's InboundMail.process saves the attachments
-	# (File.save) and re-saves the Communication without ignore_permissions, which a Guest session fails.
-	# Core runs the same code as Administrator from the scheduler; this gives it that context.
-	frappe.set_user("Administrator")  # nosemgrep: frappe-setuser
-
-	try:
-		envelope_from = relay.check_envelope(
-			"envelope-from", frappe.get_request_header(relay.HEADER_ENVELOPE_FROM)
-		)
-		envelope_to = relay.check_envelope("envelope-to", frappe.get_request_header(relay.HEADER_ENVELOPE_TO))
-	except ValueError as error:
-		return _respond(422, error=str(error))
-	body = relay.prepend_envelope_headers(body, envelope_from, envelope_to)
-
-	# Misrouting defence for a shared relay: the routed recipient must be ours.
-	delivered_to = relay.first_header(body, "Delivered-To") or envelope_to
-	domain = relay.recipient_domain(delivered_to)
-	if domain and domain not in _owned_domains(account):
-		return _respond(422, error="recipient domain does not belong to this account")
-
+def _deliver(account: CloudflareEmailAccount, body: bytes, relay_id: str | None):
+	"""Create the Communication for a verified message; run as the relay user."""
 	if relay_id:
 		existing = frappe.db.get_value(
 			"Communication", {"cf_relay_id": relay_id, "email_account": account.name}, "name"
@@ -137,6 +97,7 @@ def inbound(key: str | None = None):
 		if existing:
 			return _respond(200, remote_ref=existing, id=relay_id)
 
+	# Core deduplicates on Message-ID: a retry of a message it already has returns that Communication.
 	mail = RelayInboundMail(body, account, uid=None, seen_status=None, append_to=account.append_to)
 	try:
 		communication = mail.process()
@@ -167,6 +128,66 @@ def inbound(key: str | None = None):
 		else:
 			frappe.db.commit()
 		return _respond(500, error="internal error")
+
+
+# Reviewed: a machine-to-machine webhook, so it has to accept guests. The HMAC over timestamp and body
+# is the credential: POST only, size-capped before the body is read, and nothing is processed until
+# the signature verifies (constant-time, ± SIGNATURE_TOLERANCE s replay window) against the account's
+# secret. Processing then runs as the least-privilege relay user, never as Administrator.
+@frappe.whitelist(allow_guest=True, methods=["POST"])  # nosemgrep: guest-whitelisted-method
+def inbound(key: str | None = None):
+	relay_id = frappe.get_request_header(relay.HEADER_ID) or None
+	tenant = frappe.get_request_header(relay.HEADER_TENANT) or None
+	logger = frappe.logger("cloudflare_email_delivery")
+
+	length = frappe.request.content_length
+	if length is not None and length > MAX_MESSAGE_BYTES:
+		logger.warning(f"relay inbound {relay_id} (tenant {tenant}): {length} bytes is over the limit")
+		return _respond(413, error="message too large")
+
+	account = _find_account(key)
+	if account is None:
+		logger.warning(
+			f"relay inbound {relay_id} (tenant {tenant}): no enabled account for key {str(key)[:8]}..."
+		)
+		return _respond(401, error=UNAUTHORIZED)
+
+	body = frappe.request.get_data()
+	if len(body) > MAX_MESSAGE_BYTES:
+		return _respond(413, error="message too large")
+	secret = account.get_password("cf_webhook_secret", raise_exception=False)
+	if not relay.verify_signature(
+		secret,
+		frappe.get_request_header(relay.HEADER_TIMESTAMP),
+		frappe.get_request_header(relay.HEADER_SIGNATURE),
+		body,
+	):
+		logger.warning(f"relay inbound {relay_id}: signature verification failed on {account.name}")
+		return _respond(401, error=UNAUTHORIZED)
+
+	try:
+		envelope_from = relay.check_envelope(
+			"envelope-from", frappe.get_request_header(relay.HEADER_ENVELOPE_FROM)
+		)
+		envelope_to = relay.check_envelope("envelope-to", frappe.get_request_header(relay.HEADER_ENVELOPE_TO))
+	except ValueError as error:
+		return _respond(422, error=str(error))
+	body = relay.prepend_envelope_headers(body, envelope_from, envelope_to)
+
+	# Misrouting defence for a shared relay: the routed recipient must be ours.
+	delivered_to = relay.first_header(body, "Delivered-To") or envelope_to
+	domain = relay.recipient_domain(delivered_to)
+	if domain and domain not in _owned_domains(account):
+		return _respond(422, error="recipient domain does not belong to this account")
+
+	try:
+		with acting_as_relay_user():
+			return _deliver(account, body, relay_id)
+	except RelayUserMissing:
+		# Not migrated yet: a 5xx, so the relay keeps the message and retries.
+		frappe.log_error(title="Cloudflare relay inbound", message=f"{RELAY_USER} is missing: run migrate")
+		frappe.db.commit()
+		return _respond(503, error="not ready")
 
 
 def _account_for_desk(email_account: str) -> CloudflareEmailAccount:

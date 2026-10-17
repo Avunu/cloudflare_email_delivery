@@ -10,6 +10,7 @@ from unittest.mock import patch
 import frappe
 
 from cloudflare_email_delivery import cloudflare_api, relay
+from cloudflare_email_delivery.relay_user import ensure_relay_user
 
 DOMAIN = "cf-test.example"
 INBOUND_EMAIL = f"support@{DOMAIN}"
@@ -70,6 +71,8 @@ def ensure_account(name, email_id, *, incoming=False, outgoing=False, **values):
 
 
 def ensure_fixtures():
+	# Normally created by after_install / after_migrate; a test site may predate them.
+	ensure_relay_user()
 	ensure_domain()
 	inbound = ensure_account(INBOUND_ACCOUNT, INBOUND_EMAIL, incoming=True)
 	ensure_account(DISABLED_ACCOUNT, f"closed@{DOMAIN}", incoming=False)

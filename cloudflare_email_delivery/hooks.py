@@ -24,3 +24,7 @@ extend_doctype_class = {
 }
 override_email_send = ["cloudflare_email_delivery.cloudflare_email_delivery.custom.email_domain.send"]
 doctype_js = {"Email Account": "public/js/email_account.js"}
+# The least-privilege user the relay webhook processes mail as (relay_user.py).
+after_install = "cloudflare_email_delivery.relay_user.ensure_relay_user"
+after_migrate = "cloudflare_email_delivery.relay_user.ensure_relay_user"
+before_uninstall = "cloudflare_email_delivery.relay_user.remove_relay_user"
