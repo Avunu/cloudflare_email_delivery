@@ -127,7 +127,6 @@ class TestEmailAccount(IntegrationTestCase):
 			"Email Account", "_Test CF Outbound 2", force=True, ignore_permissions=True, ignore_missing=True
 		)
 		frappe.db.set_value("Email Account", OUTBOUND_ACCOUNT, "default_outgoing", 1)
-		frappe.db.commit()
 
 	def test_no_smtp_for_a_cloudflare_domain(self):
 		account = get_account(OUTBOUND_ACCOUNT)

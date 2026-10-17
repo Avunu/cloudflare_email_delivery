@@ -53,7 +53,8 @@ class TestOutbound(IntegrationTestCase):
 		frappe.db.rollback()
 		for name in frappe.get_all("Email Queue", {"sender": ("like", "%test.example%")}, pluck="name"):
 			frappe.delete_doc("Email Queue", name, force=True, ignore_permissions=True)
-		frappe.db.commit()
+		# EmailQueue.send commits the rows it sends, so removing them has to be committed too.
+		frappe.db.commit()  # nosemgrep: frappe-nix-test-commit
 
 	def send(self, **kwargs):
 		kwargs.setdefault("sender", OUTBOUND_EMAIL)
@@ -62,7 +63,7 @@ class TestOutbound(IntegrationTestCase):
 		kwargs.setdefault("now", True)
 		frappe.sendmail(**kwargs)
 		# now=True defers the send to after_commit, exactly as core's own tests drive it.
-		frappe.db.commit()
+		frappe.db.commit()  # nosemgrep: frappe-nix-test-commit
 
 	def test_one_call_per_recipient_with_threading_headers(self):
 		self.send(recipients=["alice@example.com", "Bob <bob@example.com>"], cc=["carol@example.com"])
