@@ -6,21 +6,51 @@ twice through the real WSGI app (the plumbing: guest POST, raw bytes, CSRF)."""
 import json
 from threading import Thread
 from typing import cast
-from unittest.mock import patch
+from unittest.mock import PropertyMock, patch
 
 import frappe
 from frappe.core.doctype.communication.communication import Communication
 from frappe.tests import IntegrationTestCase
 from frappe.utils import get_test_client, set_request
+from werkzeug.sansio.request import Request
 from werkzeug.test import TestResponse
 
-from cloudflare_email_delivery import api, relay
+from cloudflare_email_delivery import api, relay, relay_user
 from cloudflare_email_delivery.cloudflare_email_delivery.custom.email_account import CloudflareEmailAccount
 from cloudflare_email_delivery.inbound import RelayInboundMail
+from cloudflare_email_delivery.relay_user import RELAY_USER
 from cloudflare_email_delivery.tests import fixtures
 from cloudflare_email_delivery.tests.fixtures import DISABLED_ACCOUNT, INBOUND_EMAIL, RELAY_ID, mime
 
 PATH = "/api/method/cloudflare_email_delivery.api.inbound"
+UNAUTHORIZED = {"ok": False, "error": "unauthorized"}
+
+
+def mime_with_attachment(subject, msg_id) -> bytes:
+	"""A multipart/mixed message with one text attachment."""
+	lines = [
+		"From: Sylvie Lelitre <sylvie@agrolait.example>",
+		f"To: {INBOUND_EMAIL}",
+		f"Subject: {subject}",
+		"Date: Fri, 10 Aug 2012 14:16:26 +0000",
+		f"Message-ID: {msg_id}",
+		"MIME-Version: 1.0",
+		'Content-Type: multipart/mixed; boundary="mixed"',
+		"",
+		"--mixed",
+		"Content-Type: text/plain; charset=utf-8",
+		"",
+		"See the attached notes.",
+		"--mixed",
+		'Content-Type: text/plain; name="notes.txt"',
+		'Content-Disposition: attachment; filename="notes.txt"',
+		"Content-Transfer-Encoding: base64",
+		"",
+		"Q2FsbCBTeWx2aWUgYXQgMyBwbS4=",
+		"--mixed--",
+		"",
+	]
+	return "\r\n".join(lines).encode()
 
 
 class TestInbound(IntegrationTestCase):
@@ -77,7 +107,14 @@ class TestInbound(IntegrationTestCase):
 			headers=list(request_headers.items()),
 		)
 		frappe.local.response = frappe._dict()
-		payload = api.inbound(key=key if key is not False else None)
+		# As in production: the relay's request is a guest session, and it must stay one.
+		frappe.set_user("Guest")
+		try:
+			payload = api.inbound(key=key if key is not False else None)
+			self.assertEqual(frappe.session.user, "Guest")
+			self.assertEqual(frappe.session.sid, "Guest")
+		finally:
+			frappe.set_user("Administrator")
 		status = frappe.local.response.get("http_status_code") or 200
 		self.assertEqual(payload["ok"], status == 200, payload)
 		return status, payload
@@ -102,6 +139,25 @@ class TestInbound(IntegrationTestCase):
 		self.assertIn("Please call me", comm.content)
 		self.assertEqual(frappe.get_value("ToDo", comm.reference_name, "description"), "CF inbound new")
 		self.assertFalse(frappe.get_all("Unhandled Email", {"email_account": self.account.name}))
+		# Processed as the least-privilege relay user, never as Administrator.
+		self.assertEqual(comm.owner, RELAY_USER)
+		self.assertEqual(comm.modified_by, RELAY_USER)
+		self.assertEqual(frappe.get_value("ToDo", comm.reference_name, "owner"), RELAY_USER)
+
+	def test_attachments_are_saved_as_the_relay_user(self):
+		body = mime_with_attachment(subject="CF inbound attached", msg_id=self.msg_id())
+		status, payload = self.post(body)
+		self.assertEqual(status, 200)
+		comm = self.communication(payload["remote_ref"])
+		[attachment] = frappe.get_all(
+			"File",
+			{"attached_to_doctype": "Communication", "attached_to_name": comm.name},
+			["file_name", "owner", "is_private"],
+		)
+		self.assertEqual(attachment.file_name, "notes.txt")
+		self.assertEqual(attachment.owner, RELAY_USER)
+		self.assertTrue(attachment.is_private)
+		self.assertEqual(comm.owner, RELAY_USER)
 
 	def test_reply_threads(self):
 		first_id = "<thread-root@agrolait.example>"
@@ -172,7 +228,7 @@ class TestInbound(IntegrationTestCase):
 		):
 			status, payload = self.post(body, timestamp="1700000000", signature=signature)
 			self.assertEqual(status, 401, signature)
-			self.assertEqual(payload["error"], "invalid signature")
+			self.assertEqual(payload, UNAUTHORIZED)
 		with patch("cloudflare_email_delivery.relay.time.time", return_value=1700000000):
 			status, _payload = self.post(body, timestamp="1700000000", signature=good)
 		self.assertEqual(status, 200)
@@ -192,14 +248,25 @@ class TestInbound(IntegrationTestCase):
 		self.assertEqual(self.post(body, headers={relay.HEADER_TIMESTAMP: None})[0], 401)
 		self.assertEqual(self.post(body, headers={relay.HEADER_SIGNATURE: ""})[0], 401)
 
-	# -- 404 -------------------------------------------------------------------
+	def test_replayed_request_outside_the_window(self):
+		# A captured, validly signed request is refused once its timestamp is stale.
+		body = mime(subject="CF inbound replay", msg_id=self.msg_id())
+		signed_at = 1700000000
+		signature = relay.sign(self.secret, signed_at, body)
+		with patch("cloudflare_email_delivery.relay.time.time", return_value=signed_at):
+			self.assertEqual(self.post(body, timestamp=signed_at, signature=signature)[0], 200)
+		late = signed_at + relay.SIGNATURE_TOLERANCE + 1
+		with patch("cloudflare_email_delivery.relay.time.time", return_value=late):
+			status, payload = self.post(body, timestamp=signed_at, signature=signature)
+		self.assertEqual((status, payload), (401, UNAUTHORIZED))
 
 	def test_unknown_key(self):
+		# The same answer as a bad signature: nothing tells a probe which check failed.
 		body = mime(subject="CF inbound key", msg_id=self.msg_id())
 		for key in ("not-a-key", self.key[:-1], "", False):
 			status, payload = self.post(body, key=key)
-			self.assertEqual(status, 404, key)
-			self.assertEqual(payload["error"], "unknown webhook key")
+			self.assertEqual(status, 401, key)
+			self.assertEqual(payload, UNAUTHORIZED)
 
 	def test_account_not_receiving(self):
 		disabled = cast(CloudflareEmailAccount, frappe.get_doc("Email Account", DISABLED_ACCOUNT))
@@ -207,7 +274,35 @@ class TestInbound(IntegrationTestCase):
 		# A key exists but incoming is off.
 		self.assertTrue(disabled.cf_webhook_key)
 		status, _payload = self.post(body, key=disabled.cf_webhook_key)
-		self.assertEqual(status, 404)
+		self.assertEqual(status, 401)
+
+	# -- 413 / 503 -------------------------------------------------------------
+
+	def test_oversized_message(self):
+		body = mime(subject="CF inbound big", msg_id=self.msg_id())
+		with patch.object(api, "MAX_MESSAGE_BYTES", len(body) - 1):
+			status, payload = self.post(body)
+			self.assertEqual((status, payload["error"]), (413, "message too large"))
+			# Refused before the key is even looked up.
+			status, _payload = self.post(body, key="not-a-key")
+			self.assertEqual(status, 413)
+		self.assertFalse(frappe.get_all("Communication", {"email_account": self.account.name}))
+
+	def test_oversized_body_without_content_length(self):
+		body = mime(subject="CF inbound chunked", msg_id=self.msg_id())
+		with (
+			patch.object(api, "MAX_MESSAGE_BYTES", len(body) - 1),
+			patch.object(Request, "content_length", new_callable=PropertyMock, return_value=None),
+		):
+			status, _payload = self.post(body)
+		self.assertEqual(status, 413)
+
+	def test_relay_user_missing_is_retried(self):
+		body = mime(subject="CF inbound unmigrated", msg_id=self.msg_id())
+		with patch.object(relay_user, "RELAY_USER", "missing-relay@relay.invalid"):
+			status, payload = self.post(body)
+		self.assertEqual((status, payload["error"]), (503, "not ready"))
+		self.assertFalse(frappe.get_all("Communication", {"email_account": self.account.name}))
 
 	# -- 422 / 500 -------------------------------------------------------------
 
@@ -304,7 +399,7 @@ class TestInboundWsgi(IntegrationTestCase):
 			"POST", query_string={"key": self.key}, data=body, content_type="message/rfc822", headers=headers
 		)
 		self.assertEqual(response.status_code, 401)
-		self.assertEqual(json.loads(response.get_data(as_text=True))["message"]["error"], "invalid signature")
+		self.assertEqual(json.loads(response.get_data(as_text=True))["message"], UNAUTHORIZED)
 
 	def test_get_is_refused(self):
 		response = self.request("GET", query_string={"key": self.key})
