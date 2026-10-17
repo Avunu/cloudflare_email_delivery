@@ -47,7 +47,8 @@ class TestInbound(IntegrationTestCase):
 			)
 			for name in frappe.get_all(doctype, filters, pluck="name"):
 				frappe.delete_doc(doctype, name, force=True, ignore_permissions=True)
-		frappe.db.commit()
+		# api.inbound commits what it receives, so removing it has to be committed too.
+		frappe.db.commit()  # nosemgrep: frappe-nix-test-commit
 		super().tearDown()
 
 	# -- helpers ---------------------------------------------------------------
@@ -262,13 +263,13 @@ class TestInboundWsgi(IntegrationTestCase):
 		frappe.db.rollback()
 		for name in frappe.get_all("Communication", {"email_account": self.account.name}, pluck="name"):
 			frappe.delete_doc("Communication", name, force=True, ignore_permissions=True)
-		frappe.db.commit()
+		# The request committed on its own connection, so removing its rows has to be committed too.
+		frappe.db.commit()  # nosemgrep: frappe-nix-test-commit
 		super().tearDown()
 
 	def request(self, method, **kwargs) -> TestResponse:
 		"""One request through the WSGI app, on a thread of its own as frappe's API tests
 		do: the app's init/destroy would otherwise tear down this thread's site."""
-		frappe.db.commit()
 		site = frappe.local.site
 		responses: list[TestResponse] = []
 
