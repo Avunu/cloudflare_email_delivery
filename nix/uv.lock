@@ -308,6 +308,12 @@ wheels = [
 [[package]]
 name = "cloudflare-email-delivery"
 source = { editable = "apps/cloudflare_email_delivery" }
+dependencies = [
+    { name = "requests" },
+]
+
+[package.metadata]
+requires-dist = [{ name = "requests", specifier = ">=2.32,<3" }]
 
 [[package]]
 name = "cloudflare-email-delivery-bench"
