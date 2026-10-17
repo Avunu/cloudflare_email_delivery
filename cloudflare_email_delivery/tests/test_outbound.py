@@ -19,6 +19,7 @@ class TestOutbound(IntegrationTestCase):
 	@classmethod
 	def setUpClass(cls):
 		super().setUpClass()
+		cls.enterClassContext(fixtures.assets_or_stub())
 		fixtures.ensure_fixtures()
 		cls.addClassCleanup(fixtures.remove_fixtures)
 

@@ -4,6 +4,7 @@
 and an outgoing Email Account on it, and a MIME builder."""
 
 import time
+from contextlib import AbstractContextManager, nullcontext
 from unittest.mock import patch
 
 import frappe
@@ -19,6 +20,16 @@ OUTBOUND_ACCOUNT = "_Test CF Outbound"
 ACCOUNT_ID = "0123456789abcdef0123456789abcdef"
 API_TOKEN = "cf-test-token"
 RELAY_ID = "01JWRELAYID0000000000000000"
+
+
+def assets_or_stub() -> AbstractContextManager:
+	"""Frappe's email wrapper links ``email.bundle.css`` through ``sites/assets/assets.json``,
+	which only ``bench build`` writes; on a bench that was never built (the dev shell's,
+	CI's test job) the lookup dereferences ``None``. With no ``assets.json``, stand in an
+	empty one so the bundle keeps its unhashed path."""
+	if frappe.read_file("assets/assets.json") is not None:
+		return nullcontext()
+	return patch("frappe.utils.get_assets_json", return_value={})
 
 
 def ensure_domain():

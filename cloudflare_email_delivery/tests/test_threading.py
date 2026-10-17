@@ -3,7 +3,11 @@
 """A reply to mail sent through Cloudflare threads by ``References``, because the
 ``In-Reply-To`` it carries names the Message-ID Cloudflare substituted."""
 
+from typing import cast
+
 import frappe
+from frappe.core.doctype.communication.communication import Communication
+from frappe.email.doctype.email_queue.email_queue import EmailQueue
 from frappe.email.receive import InboundMail
 from frappe.tests import IntegrationTestCase
 
@@ -16,6 +20,7 @@ class TestThreading(IntegrationTestCase):
 	@classmethod
 	def setUpClass(cls):
 		super().setUpClass()
+		cls.enterClassContext(fixtures.assets_or_stub())
 		cls.account = fixtures.ensure_fixtures()
 		cls.addClassCleanup(fixtures.remove_fixtures)
 
@@ -25,27 +30,30 @@ class TestThreading(IntegrationTestCase):
 			{"doctype": "Event", "subject": "CF threading event", "starts_on": "2026-01-01 10:00:00"}
 		).insert()
 		# An outgoing mail about the Event, as Frappe queues it (Communication + Email Queue).
-		comm = frappe.get_doc(
-			{
-				"doctype": "Communication",
-				"communication_type": "Communication",
-				"communication_medium": "Email",
-				"sent_or_received": "Sent",
-				"subject": "About the event",
-				"content": "<p>Hello</p>",
-				"sender": OUTBOUND_EMAIL,
-				"recipients": "alice@example.com",
-				"reference_doctype": "Event",
-				"reference_name": self.event.name,
-			}
-		).insert(ignore_permissions=True)
+		comm = cast(
+			Communication,
+			frappe.get_doc(
+				{
+					"doctype": "Communication",
+					"communication_type": "Communication",
+					"communication_medium": "Email",
+					"sent_or_received": "Sent",
+					"subject": "About the event",
+					"content": "<p>Hello</p>",
+					"sender": OUTBOUND_EMAIL,
+					"recipients": "alice@example.com",
+					"reference_doctype": "Event",
+					"reference_name": self.event.name,
+				}
+			).insert(ignore_permissions=True),
+		)
 		frappe.flags.testing_email = False
 		comm.send_email()
 		self.comm = comm.reload()
 		[queue_name] = frappe.get_all("Email Queue", {"communication": comm.name}, pluck="name")
-		self.queue = frappe.get_doc("Email Queue", queue_name)
+		self.queue = cast(EmailQueue, frappe.get_doc("Email Queue", queue_name))
 		self.assertTrue(self.queue.message_id)
-		self.assertIn(frappe.local.site, self.queue.message_id)
+		self.assertIn(frappe.local.site, self.queue.message_id or "")
 
 	def reply(self, in_reply_to, references):
 		extra = f"In-Reply-To: {in_reply_to}\r\nReferences: {references}"
