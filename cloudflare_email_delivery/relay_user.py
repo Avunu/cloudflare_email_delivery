@@ -54,8 +54,23 @@ def _ensure_user() -> None:
 	else:
 		user = frappe.new_doc("User", email=RELAY_USER, first_name=RELAY_ROLE, send_welcome_email=0)
 	user.flags.no_welcome_mail = True
-	user.update({"enabled": 0, "user_type": "Website User", "roles": [{"role": RELAY_ROLE}]})
+	user.update(
+		{
+			"enabled": 0,
+			"user_type": "Website User",
+			"roles": [{"role": RELAY_ROLE}],
+			# User.validate re-adds every role of an assigned Role Profile, so a profile would
+			# survive the reset above: clear profiles and everything else that grants access.
+			"role_profiles": [],
+			"role_profile_name": None,
+			"module_profile": None,
+			"user_emails": [],
+			"api_key": None,
+		}
+	)
 	user.save(ignore_permissions=True)
+	# A document shared with the user widens its access past the role too.
+	frappe.db.delete("DocShare", {"user": RELAY_USER})
 	# The user may have had other roles cached from before the reset.
 	frappe.clear_cache(user=RELAY_USER)
 

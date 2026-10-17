@@ -7,6 +7,7 @@ from typing import cast
 
 import frappe
 from frappe.core.doctype.user.user import User
+from frappe.share import add_docshare
 from frappe.tests import IntegrationTestCase
 
 from cloudflare_email_delivery import hooks, relay_user
@@ -111,6 +112,31 @@ class TestRelayUser(IntegrationTestCase):
 		self.assertNotIn("System Manager", frappe.get_roles(RELAY_USER))
 		[rule] = self.relay_rules()
 		self.assertEqual((rule.delete, rule.write), (0, 1))
+
+	def test_ensure_resets_role_profiles_and_shares(self):
+		profile = "Relay Drift Profile"
+		if not frappe.db.exists("Role Profile", profile):
+			frappe.get_doc(
+				{"doctype": "Role Profile", "role_profile": profile, "roles": [{"role": "System Manager"}]}
+			).insert(ignore_permissions=True)
+		user = cast(User, frappe.get_doc("User", RELAY_USER))
+		user.append("role_profiles", {"role_profile": profile})
+		user.api_key = "relay-drift-key"
+		user.save(ignore_permissions=True)
+		self.assertIn("System Manager", [row.role for row in user.roles])
+		todo = frappe.get_doc({"doctype": "ToDo", "description": "shared with the relay"}).insert(
+			ignore_permissions=True
+		)
+		add_docshare("ToDo", todo.name, RELAY_USER, write=1, flags={"ignore_share_permission": 1})
+
+		relay_user.ensure_relay_user()
+
+		user.reload()
+		self.assertEqual([row.role for row in user.roles], [RELAY_ROLE])
+		self.assertFalse(user.role_profiles)
+		self.assertFalse(user.api_key)
+		self.assertNotIn("System Manager", frappe.get_roles(RELAY_USER))
+		self.assertFalse(frappe.get_all("DocShare", {"user": RELAY_USER}))
 
 	def test_remove_then_ensure(self):
 		relay_user.remove_relay_user()
