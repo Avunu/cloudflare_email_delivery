@@ -4,13 +4,18 @@
 twice through the real WSGI app (the plumbing: guest POST, raw bytes, CSRF)."""
 
 import json
+from threading import Thread
+from typing import cast
 from unittest.mock import patch
 
 import frappe
+from frappe.core.doctype.communication.communication import Communication
 from frappe.tests import IntegrationTestCase
 from frappe.utils import get_test_client, set_request
+from werkzeug.test import TestResponse
 
 from cloudflare_email_delivery import api, relay
+from cloudflare_email_delivery.cloudflare_email_delivery.custom.email_account import CloudflareEmailAccount
 from cloudflare_email_delivery.inbound import RelayInboundMail
 from cloudflare_email_delivery.tests import fixtures
 from cloudflare_email_delivery.tests.fixtures import DISABLED_ACCOUNT, INBOUND_EMAIL, RELAY_ID, mime
@@ -196,7 +201,7 @@ class TestInbound(IntegrationTestCase):
 			self.assertEqual(payload["error"], "unknown webhook key")
 
 	def test_account_not_receiving(self):
-		disabled = frappe.get_doc("Email Account", DISABLED_ACCOUNT)
+		disabled = cast(CloudflareEmailAccount, frappe.get_doc("Email Account", DISABLED_ACCOUNT))
 		body = mime(subject="CF inbound closed", msg_id=self.msg_id())
 		# A key exists but incoming is off.
 		self.assertTrue(disabled.cf_webhook_key)
@@ -260,17 +265,22 @@ class TestInboundWsgi(IntegrationTestCase):
 		frappe.db.commit()
 		super().tearDown()
 
-	def request(self, method, **kwargs):
-		from frappe.tests.test_api import make_request
-
+	def request(self, method, **kwargs) -> TestResponse:
+		"""One request through the WSGI app, on a thread of its own as frappe's API tests
+		do: the app's init/destroy would otherwise tear down this thread's site."""
 		frappe.db.commit()
 		site = frappe.local.site
-		return make_request(
-			target=lambda **kw: get_test_client(use_cookies=False).open(**kw),
-			args=(),
-			kwargs={"method": method, "path": PATH, **kwargs},
-			site=site,
-		)
+		responses: list[TestResponse] = []
+
+		def run():
+			with patch("frappe.app.get_site_name", return_value=site):
+				client = get_test_client(use_cookies=False)
+				responses.append(client.open(method=method, path=PATH, **kwargs))
+
+		thread = Thread(target=run)
+		thread.start()
+		thread.join()
+		return responses[0]
 
 	def test_guest_post_with_raw_body(self):
 		body = mime(subject="CF inbound wsgi", msg_id="<wsgi@agrolait.example>", body="8-bit body: café")
@@ -283,8 +293,8 @@ class TestInboundWsgi(IntegrationTestCase):
 		self.assertTrue(payload["ok"])
 		self.assertEqual(payload["id"], RELAY_ID)
 		frappe.db.rollback()
-		comm = frappe.get_doc("Communication", payload["remote_ref"])
-		self.assertIn("café", comm.text_content)
+		comm = cast(Communication, frappe.get_doc("Communication", payload["remote_ref"]))
+		self.assertIn("café", comm.text_content or "")
 
 	def test_bad_signature_status_on_the_wire(self):
 		body = mime(subject="CF inbound wsgi 401", msg_id="<wsgi-401@agrolait.example>")

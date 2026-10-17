@@ -4,7 +4,15 @@
 // Webhook credentials on a Cloudflare-domain Email Account: copy the URL (anyone who can see
 // the form), copy or regenerate the secret (System Manager). Core's "Pull Emails" button is
 // meaningless here — the relay pushes — so it goes.
-frappe.ui.form.on("Email Account", {
+//
+// Type-checked with checkJs: `frm.doc` is the Email Account from types/doctypes.d.ts
+// (frappe-types gen-registry), custom fields included.
+
+/** @typedef {{ message?: string }} SecretResponse `cloudflare_email_delivery.api.get_webhook_secret` */
+
+/** @type {frappe.ui.form.FormEvents<"Email Account">} */
+const email_account_events = {
+	/** @param {frappe.ui.form.Form<"Email Account">} frm */
 	refresh(frm) {
 		if (!frm.doc.cf_enabled || !frm.doc.enable_incoming || frm.is_new()) {
 			return;
@@ -13,7 +21,7 @@ frappe.ui.form.on("Email Account", {
 		const group = __("Cloudflare Webhook");
 		frm.add_custom_button(
 			__("Copy Webhook URL"),
-			() => frappe.utils.copy_to_clipboard(frm.doc.cf_webhook_url),
+			() => frappe.utils.copy_to_clipboard(frm.doc.cf_webhook_url ?? ""),
 			group,
 		);
 		if (!frappe.user.has_role("System Manager")) {
@@ -27,7 +35,7 @@ frappe.ui.form.on("Email Account", {
 						method: "cloudflare_email_delivery.api.get_webhook_secret",
 						args: { email_account: frm.doc.name },
 					})
-					.then((r) => frappe.utils.copy_to_clipboard(r.message)),
+					.then((/** @type {SecretResponse} */ r) => frappe.utils.copy_to_clipboard(r.message ?? "")),
 			group,
 		);
 		frm.add_custom_button(
@@ -48,4 +56,6 @@ frappe.ui.form.on("Email Account", {
 			group,
 		);
 	},
-});
+};
+
+frappe.ui.form.on("Email Account", email_account_events);

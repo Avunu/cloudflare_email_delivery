@@ -113,8 +113,8 @@ strips the very overrides these tests exercise.
 
 | Hook                                        | Purpose                                                                                        |
 | ------------------------------------------- | ---------------------------------------------------------------------------------------------- |
-| `override_doctype_class` → `EmailDomain`    | verify the API token instead of SMTP/IMAP connections                                          |
-| `override_doctype_class` → `EmailAccount`   | blank the server fields, generate the webhook key + secret, build the URL, no-op the IMAP pull |
+| `extend_doctype_class` → `Email Domain`     | verify the API token instead of SMTP/IMAP connections                                          |
+| `extend_doctype_class` → `Email Account`    | blank the server fields, generate the webhook key + secret, build the URL, no-op the IMAP pull |
 | `override_email_send` → `email_domain.send` | the Email Sending API call, with Frappe Mail / SMTP fallback for other accounts                |
 | `doctype_js` → `email_account.js`           | the copy / regenerate buttons                                                                  |
 | `api.inbound`                               | the webhook                                                                                    |

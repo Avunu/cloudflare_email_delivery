@@ -6,7 +6,7 @@ hook that routes an Email Queue entry through the Cloudflare Email Sending API."
 import email
 import email.policy
 from email.utils import parseaddr
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, cast
 
 import frappe
 from frappe import _, safe_encode
@@ -19,7 +19,10 @@ from cloudflare_email_delivery import cloudflare_api
 from cloudflare_email_delivery.cloudflare_api import CloudflareEmailError, CloudflareSendingSession
 
 
-class EmailDomain(BaseEmailDomain):
+class CloudflareEmailDomain(BaseEmailDomain):
+	"""Registered with ``extend_doctype_class``; a domain that does not send via
+	Cloudflare runs core's checks through ``super()``."""
+
 	if TYPE_CHECKING:
 		cf_account_id: DF.Data
 		cf_api_token: DF.Password
@@ -44,9 +47,15 @@ class EmailDomain(BaseEmailDomain):
 			cloudflare_api.verify_token(api_token)
 		except CloudflareEmailError as error:
 			frappe.throw(
-				_("Cloudflare API token validation failed: {0}").format(error),
+				_("Cloudflare API token validation failed: {0}").format(str(error)),
 				title=_("Outgoing email account not correct"),
 			)
+
+
+# Unpickling shim: Email Domain documents cached in Redis before the switch to
+# ``extend_doctype_class`` were pickled by reference to this module's ``EmailDomain``.
+# Remove in a later release, once every site has cleared its cache.
+EmailDomain = CloudflareEmailDomain
 
 
 def get_cloudflare_settings(email_account) -> dict | None:
@@ -54,7 +63,7 @@ def get_cloudflare_settings(email_account) -> dict | None:
 	else ``None``. Never raises for an account that simply is not ours."""
 	if email_account is None or not email_account.domain:
 		return None
-	domain = frappe.get_cached_doc("Email Domain", email_account.domain)
+	domain = cast(CloudflareEmailDomain, frappe.get_cached_doc("Email Domain", email_account.domain))
 	if not domain.send_via_cloudflare:
 		return None
 	account_id = domain.cf_account_id
