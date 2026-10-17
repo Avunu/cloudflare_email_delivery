@@ -47,7 +47,7 @@ class CloudflareEmailDomain(BaseEmailDomain):
 			cloudflare_api.verify_token(api_token)
 		except CloudflareEmailError as error:
 			frappe.throw(
-				_("Cloudflare API token validation failed: {0}").format(error),
+				_("Cloudflare API token validation failed: {0}").format(str(error)),
 				title=_("Outgoing email account not correct"),
 			)
 
