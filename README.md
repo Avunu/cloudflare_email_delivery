@@ -103,15 +103,24 @@ creates the user and resets it to that shape; nothing runs as Administrator.
 ## Tests
 
 ```sh
+frappe-test --ci   # in the frappe-nix dev shell: what CI's ci / test runs
+
+# on any bench
 bench --site test_site install-app cloudflare_email_delivery
 bench --site test_site run-tests --app cloudflare_email_delivery
 ```
 
 `tests/test_relay.py` and `tests/test_cloudflare_api.py` are plain `unittest` (no site needed:
 `python -m unittest cloudflare_email_delivery.tests.test_relay`). The site-backed suites cover the
-webhook (in-process and through the real WSGI app), threading and the send hook. The frappe-nix
-dev shell turns its mail guard off for this app (`nix/local.nix`): the guard deliberately strips the
-very extensions these tests exercise. Its egress guard stays on, so nothing leaves a dev bench.
+webhook (in-process and through the real WSGI app), threading and the send hook.
+
+frappe-nix's mail guard deliberately strips the very Email Account and Email Domain extensions and the
+`override_email_send` hook these tests exercise, so `[tool.frappe-nix.tests] devguard-disable =
+["mail"]` in `pyproject.toml` turns it off for `frappe-test`'s test processes only. The dev shell
+and `devenv up` keep it, so mail sent while working on the app by hand still lands in Mailpit, and
+the egress guard stays on everywhere: nothing, SMTP and the Cloudflare API included, leaves a dev
+bench. To run the site-backed tests with plain `bench run-tests` on a frappe-nix bench, turn the
+guard off for that one command: `FRAPPE_DEVGUARD_DISABLE=mail bench --site … run-tests …`.
 
 ## How it works
 

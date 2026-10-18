@@ -41,7 +41,13 @@ frappe-major = 16
 integration-branch = "main"
 
 [tool.frappe-nix.dev-shell]
-frappe-nix-url = "github:Avunu/frappe-nix/de60612a38409a61004f3d311a9e2748d2a3d341"
+frappe-nix-url = "github:Avunu/frappe-nix/5070baa2f49b8c38f601df5badc041720cd47c7c"
+
+[tool.frappe-nix.tests]
+# This app is a mail transport: the mail guard strips the Email Account and Email Domain
+# extensions and the override_email_send hook its tests exercise. Off for frappe-test's test
+# processes only; the dev shell keeps it, and the egress guard stays on.
+devguard-disable = ["mail"]
 
 [tool.ty.environment]
 python-version = "3.14"
