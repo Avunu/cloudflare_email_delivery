@@ -4,7 +4,7 @@
   description = "cloudflare_email_delivery: Cloudflare Email Delivery";
 
   inputs = {
-    frappe-nix.url = "github:Avunu/frappe-nix/5070baa2f49b8c38f601df5badc041720cd47c7c";
+    frappe-nix.url = "github:Avunu/frappe-nix/release-1";
     nixpkgs.follows = "frappe-nix/nixpkgs";
     frappe = {
       url = "github:frappe/frappe/version-16";
