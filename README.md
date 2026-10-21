@@ -33,7 +33,7 @@ It is the Frappe adapter of Avunu's Cloudflare Email suite, beside the relay, th
 
 ## Features
 
-- **No SMTP to manage.** An Email Domain with **Send via Cloudflare** holds a Cloudflare account ID and API token instead of server settings, and saving it verifies the token.
+- **No SMTP to manage.** An Email Domain with **Send via Cloudflare** holds a Cloudflare account ID and API token instead of SMTP settings, and saving it verifies the token.
 - **No IMAP polling.** An incoming Email Account on that domain gets a **Webhook URL** and a **Webhook Secret** when it is saved. The relay posts every message to the URL; the app checks the HMAC signature and the recipient domain, then creates the Communication (and the _Append To_ document) as Frappe does for a mailbox.
 - **Threading that survives Cloudflare.** Cloudflare replaces the `Message-ID` of every message it sends. Frappe's own id is added to `References`, and inbound replies are matched on `References` as well as `In-Reply-To`, so a reply lands on the right document.
 - Attachments, inline images (by `Content-ID`), `Reply-To` and the headers Cloudflare allows (`In-Reply-To`, `References`, `X-*`, `Precedence` and others) are sent.

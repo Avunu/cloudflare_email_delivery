@@ -117,6 +117,7 @@ The tests, the mail guard and the source layout are described in [Development](d
 | `doctype_js` → `email_account.js`           | the copy / regenerate buttons                                                                  |
 | `api.inbound`                               | the webhook                                                                                    |
 | `after_install` / `after_migrate`           | create the relay user, role and permission rule, or reset them to least privilege              |
+| `before_uninstall`                          | remove the relay user, role and permission rule                                                |
 
 `cloudflare_api.py` (the API client) is shared with the Odoo module `mail_cloudflare` in
 [Avunu/avunu-odoo-addons](https://github.com/Avunu/avunu-odoo-addons); `relay.py` implements the
