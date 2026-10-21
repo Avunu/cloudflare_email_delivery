@@ -3,8 +3,9 @@ For license information, please see license.txt-->
 
 # Cloudflare Email Delivery
 
-Send and receive Frappe / ERPNext email through Cloudflare, with no SMTP or IMAP provider in the
-loop. Outbound mail goes to the **Cloudflare Email Sending** REST API straight from Frappe's
+Send and receive Frappe email through Cloudflare, with no SMTP or IMAP server
+
+Outbound mail goes to the **Cloudflare Email Sending** REST API straight from Frappe's
 `override_email_send` hook; inbound mail arrives from the **Cloudflare email relay** (the
 [`@avunu/cloudflare-email-relay`](https://github.com/Avunu/cloudflare-email-relay) Worker, deployed
 per fleet) over a signed HTTPS webhook and is fed to Frappe's own `InboundMail` — the same path IMAP
@@ -99,28 +100,12 @@ creates the user and resets it to that shape; nothing runs as Administrator.
   Cloudflare's allow-list (`Disposition-Notification-To`, …) are dropped.
 - Bcc'd recipients receive their copy but are not listed anywhere in the delivered message
   (Frappe sends each recipient their own copy).
+- The help text under the webhook fields on the Email Account form says an unknown key or a
+  disabled account gets a `404`; the endpoint answers `401` for both, as the table above says.
 
-## Tests
+## Development
 
-```sh
-frappe-test --ci   # in the frappe-nix dev shell: what CI's ci / test runs
-
-# on any bench
-bench --site test_site install-app cloudflare_email_delivery
-bench --site test_site run-tests --app cloudflare_email_delivery
-```
-
-`tests/test_relay.py` and `tests/test_cloudflare_api.py` are plain `unittest` (no site needed:
-`python -m unittest cloudflare_email_delivery.tests.test_relay`). The site-backed suites cover the
-webhook (in-process and through the real WSGI app), threading and the send hook.
-
-frappe-nix's mail guard deliberately strips the very Email Account and Email Domain extensions and the
-`override_email_send` hook these tests exercise, so `[tool.frappe-nix.tests] devguard-disable =
-["mail"]` in `pyproject.toml` turns it off for `frappe-test`'s test processes only. The dev shell
-and `devenv up` keep it, so mail sent while working on the app by hand still lands in Mailpit, and
-the egress guard stays on everywhere: nothing, SMTP and the Cloudflare API included, leaves a dev
-bench. To run the site-backed tests with plain `bench run-tests` on a frappe-nix bench, turn the
-guard off for that one command: `FRAPPE_DEVGUARD_DISABLE=mail bench --site … run-tests …`.
+The tests, the mail guard and the source layout are described in [Development](development.md).
 
 ## How it works
 
@@ -158,5 +143,6 @@ Need it set up for your business? [Avunu](https://avunu.net) can help.
 
 ## License
 
-MIT. `cloudflare_email_delivery/cloudflare_api.py` derives from the AGPL-3.0 Odoo module of the
-same author, relicensed here by its copyright holder, Avunu LLC.
+[MIT](https://github.com/Avunu/cloudflare_email_delivery/blob/main/license.txt), Copyright (c) 2026–present Avunu LLC.
+`cloudflare_email_delivery/cloudflare_api.py` derives from the AGPL-3.0 Odoo module of the same
+author, relicensed here under MIT by its copyright holder, Avunu LLC.

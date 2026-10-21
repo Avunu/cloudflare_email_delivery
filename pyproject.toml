@@ -1,7 +1,7 @@
 [project]
 name = "cloudflare_email_delivery"
 authors = [{ name = "Avunu LLC", email = "mail@avu.nu" }]
-description = "Send and receive email via Cloudflare Email Sending and the Cloudflare email relay"
+description = "Send and receive Frappe email through Cloudflare, with no SMTP or IMAP server"
 requires-python = ">=3.14"
 readme = "README.md"
 license = { text = "MIT" }

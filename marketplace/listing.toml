@@ -1,0 +1,10 @@
+# The app's registry listing (docs/app-standards/marketplace.md); frappe-listing check validates it.
+schema = 1
+title = "Cloudflare Email Delivery"
+tagline = "Send and receive Frappe email through Cloudflare, with no SMTP or IMAP server"
+type = "integration"
+category = "Integrations"
+categories = ["Email", "Communication"]
+website = "https://avunu.net/open-source/cloudflare_email_delivery/"
+documentation = "https://docs.avunu.net/cloudflare-email-delivery/"
+apps_screen = false

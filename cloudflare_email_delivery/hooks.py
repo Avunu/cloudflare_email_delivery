@@ -3,10 +3,8 @@
 
 from . import __version__
 
-app_color = "grey"
-app_description = "Send and receive email via Cloudflare Email Sending and the Cloudflare email relay"
+app_description = "Send and receive Frappe email through Cloudflare, with no SMTP or IMAP server"
 app_email = "mail@avu.nu"
-app_icon = "octicon octicon-file-directory"
 app_license = "MIT"
 app_name = "cloudflare_email_delivery"
 app_publisher = "Avunu LLC"
