@@ -47,7 +47,7 @@
 		"readme": "hero",
 		"width": 2880,
 		"height": 1800,
-		"sha256": "14f06f4e8a51cb2d077b2724b07fc65277f1df7ad16db42e936b1463853f3709"
+		"sha256": "4ca06c87ed650671a9082f2ec5078290412aa78d37143241653eefe321d4f380"
 	},
 	{
 		"name": "webhook",
@@ -57,6 +57,6 @@
 		"readme": "hero",
 		"width": 2880,
 		"height": 1800,
-		"sha256": "b4519f82b288510e89c7f337f5d867d30e630e57514530e37e0e40d318b628c2"
+		"sha256": "bf9fcb32a2eeeee538fefddc3d64e05c95f7c168e95ba04445cf0e86596d70cd"
 	}
 ]
