@@ -1,0 +1,62 @@
+[
+	{
+		"name": "sending-domain",
+		"theme": "dark",
+		"alt": "An Email Domain set to Send via Cloudflare, with the Cloudflare account ID and API token in place of SMTP settings",
+		"featured": true,
+		"readme": "feature",
+		"width": 2880,
+		"height": 1800,
+		"sha256": "41aaa29aeb33b597c39999501b61051cec2192d3e5d8945270f599e00eaef563"
+	},
+	{
+		"name": "sending-domain",
+		"theme": "light",
+		"alt": "An Email Domain set to Send via Cloudflare, with the Cloudflare account ID and API token in place of SMTP settings",
+		"featured": true,
+		"readme": "feature",
+		"width": 2880,
+		"height": 1800,
+		"sha256": "02d0fbb13fd445f8d629a537fe7679d8484d4bd01a6c194ff77d3c0cc0d551be"
+	},
+	{
+		"name": "threaded-reply",
+		"theme": "dark",
+		"alt": "A ToDo created from a customer's e-mail, with the reply sent from the desk and the customer's answer threaded in its timeline",
+		"featured": true,
+		"readme": "feature",
+		"width": 2880,
+		"height": 1800,
+		"sha256": "54d3b544620f4a3d068f7f086e1a0fb5c39b5d246f1cf369b0780232411f02f0"
+	},
+	{
+		"name": "threaded-reply",
+		"theme": "light",
+		"alt": "A ToDo created from a customer's e-mail, with the reply sent from the desk and the customer's answer threaded in its timeline",
+		"featured": true,
+		"readme": "feature",
+		"width": 2880,
+		"height": 1800,
+		"sha256": "b241c829305fa1a6dcbcbf6d31bd84af67c79e0e4e0578f938ffc627c2c13fe3"
+	},
+	{
+		"name": "webhook",
+		"theme": "dark",
+		"alt": "An Email Account on a Cloudflare domain: its Incoming tab shows the Webhook URL, key and secret for the relay, and the Cloudflare Webhook buttons",
+		"featured": true,
+		"readme": "hero",
+		"width": 2880,
+		"height": 1800,
+		"sha256": "14f06f4e8a51cb2d077b2724b07fc65277f1df7ad16db42e936b1463853f3709"
+	},
+	{
+		"name": "webhook",
+		"theme": "light",
+		"alt": "An Email Account on a Cloudflare domain: its Incoming tab shows the Webhook URL, key and secret for the relay, and the Cloudflare Webhook buttons",
+		"featured": true,
+		"readme": "hero",
+		"width": 2880,
+		"height": 1800,
+		"sha256": "b4519f82b288510e89c7f337f5d867d30e630e57514530e37e0e40d318b628c2"
+	}
+]
