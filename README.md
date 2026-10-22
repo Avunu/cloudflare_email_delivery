@@ -100,7 +100,6 @@ You need a Cloudflare account on the Workers Paid plan, with the domain onboarde
 - Reply matching after Cloudflare's `Message-ID` rewrite relies on the replying client carrying `References`, which every mainstream client does.
 - Cloudflare's limits apply: 5 MiB per message, 50 recipients, and 20 custom headers of at most 2 KB each. Headers outside Cloudflare's allow-list (`Disposition-Notification-To` and others) are dropped.
 - Bcc recipients get their copy but are not listed anywhere in the delivered message, because Frappe sends each recipient a copy of its own.
-- The help text under the webhook fields on the Email Account form says an unknown key or a disabled account gets a 404; the endpoint answers 401 for both, as the [webhook contract](docs/README.md#the-webhook-contract) says.
 
 <!-- frappe-nix:begin support -->
 

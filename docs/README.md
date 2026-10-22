@@ -100,8 +100,6 @@ creates the user and resets it to that shape; nothing runs as Administrator.
   Cloudflare's allow-list (`Disposition-Notification-To`, …) are dropped.
 - Bcc'd recipients receive their copy but are not listed anywhere in the delivered message
   (Frappe sends each recipient their own copy).
-- The help text under the webhook fields on the Email Account form says an unknown key or a
-  disabled account gets a `404`; the endpoint answers `401` for both, as the table above says.
 
 ## Development
 

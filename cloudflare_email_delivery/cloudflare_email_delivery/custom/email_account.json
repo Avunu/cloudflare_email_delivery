@@ -70,7 +70,7 @@
             "fieldtype": "HTML",
             "insert_after": "cf_webhook_secret",
             "module": "Cloudflare Email Delivery",
-            "options": "<p>Every inbound message is posted to the Webhook URL as <code>message/rfc822</code> with <code>X-Email-Relay-Id</code>, <code>-Tenant</code>, <code>-Timestamp</code> (Unix seconds, &plusmn;300 s), <code>-Signature</code> (<code>v1=</code> hex HMAC-SHA256 over <code>&lt;timestamp&gt;.</code> + body), <code>-Envelope-From</code>/<code>-To</code> and <code>-Attempt</code>. Answers: 200 delivered, 401 bad signature, 404 unknown key or account disabled, 422 refused (wrong domain, invalid message), 500 retried by the relay.</p>"
+            "options": "<p>Every inbound message is posted to the Webhook URL as <code>message/rfc822</code> with <code>X-Email-Relay-Id</code>, <code>-Tenant</code>, <code>-Timestamp</code> (Unix seconds, &plusmn;300 s), <code>-Signature</code> (<code>v1=</code> hex HMAC-SHA256 over <code>&lt;timestamp&gt;.</code> + body), <code>-Envelope-From</code>/<code>-To</code> and <code>-Attempt</code>. Answers: 200 delivered, 401 unknown key, incoming disabled or bad signature, 413 too large, 422 refused (wrong domain, invalid message), 500 and 503 retried by the relay.</p>"
         }
     ],
     "doctype": "Email Account",
