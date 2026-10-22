@@ -3,7 +3,9 @@
 """The inbound webhook, called in-process with a fake request (the fast path) and
 twice through the real WSGI app (the plumbing: guest POST, raw bytes, CSRF)."""
 
+import inspect
 import json
+import re
 from threading import Thread
 from typing import cast
 from unittest.mock import PropertyMock, patch
@@ -275,6 +277,17 @@ class TestInbound(IntegrationTestCase):
 		self.assertTrue(disabled.cf_webhook_key)
 		status, _payload = self.post(body, key=disabled.cf_webhook_key)
 		self.assertEqual(status, 401)
+
+	def test_form_help_lists_the_codes_the_endpoint_answers(self):
+		# The help under the webhook fields on the Email Account form once said an unknown
+		# key or a disabled account got a 404; both get the 401 above.
+		help_html = frappe.db.get_value(
+			"Custom Field", {"dt": "Email Account", "fieldname": "cf_webhook_help"}, "options"
+		)
+		answers = help_html.split("Answers:", 1)[1]
+		answered = {int(code) for code in re.findall(r"_respond\((\d{3})", inspect.getsource(api))}
+		self.assertEqual({int(code) for code in re.findall(r"\b\d{3}\b", answers)}, answered)
+		self.assertIn("401 unknown key, incoming disabled or bad signature", answers)
 
 	# -- 413 / 503 -------------------------------------------------------------
 
