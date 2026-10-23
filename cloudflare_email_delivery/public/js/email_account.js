@@ -35,9 +35,7 @@ const email_account_events = {
 						method: "cloudflare_email_delivery.api.get_webhook_secret",
 						args: { email_account: frm.doc.name },
 					})
-					.then((/** @type {SecretResponse} */ r) =>
-						frappe.utils.copy_to_clipboard(r.message ?? ""),
-					),
+					.then((/** @type {SecretResponse} */ r) => frappe.utils.copy_to_clipboard(r.message ?? "")),
 			group,
 		);
 		frm.add_custom_button(

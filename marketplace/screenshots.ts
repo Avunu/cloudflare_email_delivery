@@ -44,8 +44,7 @@ export default {
 			name: "threaded-reply",
 			route: "/app/todo",
 			alt: "A ToDo created from a customer's e-mail, with the reply sent from the desk and the customer's answer threaded in its timeline",
-			waitForFn:
-				"window.cur_list && cur_list.doctype === 'ToDo' && !!document.querySelector('.list-row')",
+			waitForFn: "window.cur_list && cur_list.doctype === 'ToDo' && !!document.querySelector('.list-row')",
 			actions: [
 				{ eval: OPEN_TODO },
 				{ waitFor: ".new-timeline .timeline-item .timeline-message-box" },
