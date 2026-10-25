@@ -56,10 +56,6 @@ It is the Frappe adapter of Avunu's Cloudflare Email suite, beside the relay, th
 
 ## Installation
 
-On Frappe Cloud, install Cloudflare Email Delivery from the [Frappe marketplace](https://cloud.frappe.io/marketplace/apps/cloudflare_email_delivery).
-
-On a bench of your own:
-
 ```bash
 bench get-app https://github.com/Avunu/cloudflare_email_delivery --branch version-16
 bench --site <site> install-app cloudflare_email_delivery
