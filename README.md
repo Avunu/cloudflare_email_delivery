@@ -31,6 +31,8 @@ Running e-mail for a Frappe or ERPNext site usually means SMTP credentials, IMAP
 
 It is the Frappe adapter of Avunu's Cloudflare Email suite, beside the relay, the Odoo module [`mail_cloudflare`](https://github.com/Avunu/avunu-odoo-addons/tree/18.0/mail_cloudflare) and the [WordPress plugin](https://github.com/Avunu/wordpress-cloudflare-email).
 
+Full documentation: [docs.avunu.net/cloudflare-email-delivery/docs/](https://docs.avunu.net/cloudflare-email-delivery/docs/).
+
 ## Features
 
 - **No SMTP to manage.** An Email Domain with **Send via Cloudflare** holds a Cloudflare account ID and API token instead of SMTP settings, and saving it verifies the token.
@@ -69,32 +71,30 @@ Until the first release creates the `version-16` branch, install from `main` ins
 
 You need a Cloudflare account on the Workers Paid plan, with the domain onboarded for **Email Sending** and **Email Routing** enabled on its zone, and an API token with _Email Sending: Edit_. For incoming mail the site must be reachable over https with `host_name` set in its site config (the webhook URL is built from it), and the relay needs a tenant entry for the site.
 
-**Sending**
-
 1. On the **Email Domain**, tick **Send via Cloudflare** and fill in **Cloudflare Account ID** and **Cloudflare API Token**. Saving verifies the token.
 2. On the **Email Account**, link the domain, set the address and tick **Enable Outgoing**. There is no password and no SMTP server to fill in.
+3. To receive, tick **Enable Incoming**, choose **Append To** and save. Copy the **Webhook URL** and, as a System Manager, the **Webhook Secret** from the **Cloudflare Webhook** buttons into the relay's tenant entry, and route the addresses to the relay Worker in the zone's **Email Routing**.
 
-**Receiving**
-
-1. On the same Email Account, tick **Enable Incoming**, choose **Append To** (ToDo, Issue, Lead and so on) and the usual options (auto-reply, attachment limit, notifications), then save.
-2. The **Cloudflare Email Receiving** section on the **Incoming** tab now shows the **Webhook URL**. Use **Cloudflare Webhook > Copy Webhook URL** and, as a System Manager, **Copy Webhook Secret**, and give both to the relay as the tenant's `inboundUrl` and `secret`, together with the domains whose mail should reach this site.
-3. In the zone's **Email Routing**, route the addresses (or the catch-all) to the relay Worker.
-
-**Regenerate Webhook Secret** changes the secret only. The URL stays the same, so only the tenant's secret in the relay needs updating; deliveries in between are parked as rejected on the relay and can be retried from there.
+Every setting is described in [docs/configuration.md](docs/configuration.md); the steps are in [docs/sending.md](docs/sending.md) and [docs/receiving.md](docs/receiving.md).
 
 ## How It Works
 
 - `extend_doctype_class` stacks the app's controllers on **Email Domain** and **Email Account**; each one calls the stock controller for anything that is not on a Cloudflare domain. On a Cloudflare domain, the Email Domain verifies the API token instead of testing SMTP and IMAP connections, and the Email Account clears its server fields, generates the webhook key and secret once, builds the webhook URL and turns the scheduler's IMAP pull into a no-op.
-- The `override_email_send` hook receives each recipient's copy of an Email Queue entry. For an account on a Cloudflare domain it posts the message to the Email Sending API, one call per recipient; for any other account it sends through Frappe Mail or SMTP, as core would.
-- `cloudflare_email_delivery.api.inbound` is the webhook. It is a guest endpoint that accepts POST only: it caps the size, finds the account by the key in the URL, verifies the `X-Email-Relay-Signature` HMAC over the timestamp and body in constant time (a timestamp more than 300 seconds off is refused), checks that the recipient domain belongs to the account, and passes the raw message to `InboundMail`. Each status code tells the relay whether to retry; the [documentation](docs/README.md#the-webhook-contract) lists them with the headers.
-- The message is processed as `cloudflare-email-relay@relay.invalid`, a disabled Website User whose only role, _Cloudflare Email Relay_, may read and write the Communications it owns. `bench migrate` creates the user and resets it to that shape.
-- Retried deliveries are not duplicated: a message the site already has is recognised by the relay's queue id (`X-Email-Relay-Id`), and by its `Message-ID` as core does for IMAP.
+- The `override_email_send` hook receives each recipient's copy of an Email Queue entry. For an account on a Cloudflare domain it posts the message to the Email Sending API; for any other account it sends through Frappe Mail or SMTP, as core would.
+- `cloudflare_email_delivery.api.inbound` is the webhook: a guest, POST-only endpoint that verifies the relay's HMAC signature, checks the recipient domain and passes the raw message to `InboundMail`, run as a disabled, least-privilege user. Each status code tells the relay whether to retry; [docs/webhook.md](docs/webhook.md) lists them.
+
+The design is described in [docs/development/architecture.md](docs/development/architecture.md).
 
 ## Limitations
 
 - Asynchronous bounces never reach Frappe: the `Return-Path` is Cloudflare's, and bounces go to its own `cf-bounce` subdomain. Only the recipients Cloudflare rejects at send time are reported.
 - Reply matching after Cloudflare's `Message-ID` rewrite relies on the replying client carrying `References`, which every mainstream client does.
-- Cloudflare's limits apply: 5 MiB per message, 50 recipients, and 20 custom headers of at most 2 KB each. Headers outside Cloudflare's allow-list (`Disposition-Notification-To` and others) are dropped.
+- Cloudflare's sending limits apply: 5 MiB per message, and at most 20 custom headers of 2 KB each and 16 KB in all. Headers outside Cloudflare's allow-list (`Disposition-Notification-To` and others) are dropped. Its 50-recipient limit does not come into play, because Frappe sends each recipient a copy of its own.
+- Incoming messages are limited by the site's request size: `max_file_size` in the site config, 25 MiB when it is not set.
+- Frappe calls only the first `override_email_send` hook of the installed apps, so another app installed earlier that registers it replaces this app's sending.
+
+More in [docs/troubleshooting.md](docs/troubleshooting.md).
+
 - Bcc recipients get their copy but are not listed anywhere in the delivered message, because Frappe sends each recipient a copy of its own.
 
 <!-- frappe-nix:begin support -->
@@ -120,7 +120,7 @@ The managed files, checks and release flow are described in the [app standards d
 
 <!-- frappe-nix:end development -->
 
-The tests, the mail guard and the source layout are described in [docs/development.md](docs/development.md).
+The tests, the mail guard, CI and releases are described in [docs/development/README.md](docs/development/README.md).
 
 <!-- frappe-nix:begin license -->
 
