@@ -1,147 +1,61 @@
-<!-- Copyright (c) 2026, Avunu LLC and contributors
-For license information, please see license.txt-->
+---
+title: Cloudflare Email Delivery
+description: Send and receive Frappe email through Cloudflare, with no SMTP or IMAP server to run or poll.
+nav_title: Overview
+order: 0
+updated: 2026-10-26
+---
 
-# Cloudflare Email Delivery
+Running email for a Frappe or ERPNext site usually means SMTP credentials for sending, an IMAP mailbox the scheduler polls for receiving, and a mail provider in between. Cloudflare Email Delivery replaces both for sites whose domains are on Cloudflare. Outgoing mail goes straight from Frappe to the Cloudflare Email Sending API. Incoming mail is pushed to the site by the [Cloudflare email relay](https://github.com/Avunu/cloudflare-email-relay), a Cloudflare Worker, over a signed HTTPS webhook, and Frappe processes it the way it processes mail it pulls from a mailbox: **Append To**, auto-replies, attachments, notifications and reply threading work as before.
 
-Send and receive Frappe email through Cloudflare, with no SMTP or IMAP server
+It is for administrators of Frappe sites who already manage their domains on Cloudflare and want one place for mail. It runs on Frappe v16 and is free software under the [MIT licence](../license.txt).
 
-Outbound mail goes to the **Cloudflare Email Sending** REST API straight from Frappe's
-`override_email_send` hook; inbound mail arrives from the **Cloudflare email relay** (the
-[`@avunu/cloudflare-email-relay`](https://github.com/Avunu/cloudflare-email-relay) Worker, deployed
-per fleet) over a signed HTTPS webhook and is fed to Frappe's own `InboundMail` — the same path IMAP
-polling uses, so _Append To_, auto-replies, attachments, notifications and reply threading all
-behave as they do for a mailbox.
+## What you get
 
-## What it does
+### Sending without SMTP
 
-**Outbound.** An Email Domain with _Send via Cloudflare_ holds an account id and an API token
-instead of SMTP settings. Every Email Queue entry sent from an account on that domain becomes one
-REST call per recipient: the `From`, the recipient, `Reply-To`, text and HTML bodies, attachments
-(inline ones by `Content-ID`), and the headers Cloudflare allows (`In-Reply-To`, `References`,
-`X-*`, `Precedence`, …). Frappe keeps its own `Message-Id` — the value Email Queue and
-Communication store — and adds it to `References`, because Cloudflare assigns a `Message-ID` of its
-own. Rate limits and transient errors are retried briefly; an invalid token fails the rest of the
-batch fast; recipients Cloudflare bounces or suppresses synchronously fail the entry. Accounts on
-other domains keep using SMTP or Frappe Mail as before.
+An Email Domain with **Send via Cloudflare** holds a Cloudflare account ID and API token instead of SMTP settings, and saving it checks the token. Every Email Account on that domain then sends through the Cloudflare API, with attachments, inline images and the threading headers. See [Send mail through Cloudflare](sending.md).
 
-**Inbound.** An Email Account on a Cloudflare domain with _Enable Incoming_ has no IMAP server; it
-gets a **Webhook URL** and a **Webhook Secret** the moment it is saved. The relay posts every
-message routed to the account's domain to that URL, signed; the app verifies the signature, checks
-the recipient domain is the account's own, and hands the raw message to `InboundMail` with the
-account's _Append To_. Replies to Cloudflare-sent mail thread correctly even though Cloudflare
-replaced the `Message-ID`: the app matches `References` against the ids it issued or stored.
+![An Email Domain set to Send via Cloudflare, with the Cloudflare account ID and API token in place of SMTP settings](screenshots/sending-domain-light.webp)
+
+### Receiving without IMAP polling
+
+An incoming Email Account on that domain gets a **Webhook URL** and a **Webhook Secret** when you save it. The relay posts every message to the URL, the app checks its signature and recipient domain, and the message becomes a Communication on the account's **Append To** document. See [Receive mail from the relay](receiving.md).
+
+![An Email Account on a Cloudflare domain: its Incoming tab shows the Webhook URL, key and secret for the relay, and the Cloudflare Webhook buttons](screenshots/webhook-light.webp)
+
+### Replies that land on the right document
+
+Cloudflare replaces the `Message-ID` of every message it sends, which would normally break Frappe's reply matching. The app keeps Frappe's own id in `References` and matches replies on it, so a customer's answer lands in the timeline of the document it belongs to. See [Reply threading](threading.md).
+
+![A ToDo created from a customer's e-mail, with the reply sent from the desk and the customer's answer threaded in its timeline](screenshots/threaded-reply-light.webp)
+
+### A documented webhook
+
+The webhook answers each delivery with a status code that tells the relay whether to retry, park or accept the message, and processes mail as a disabled, least-privilege user instead of Administrator. See [The webhook contract](webhook.md).
+
+## Where to start
+
+| You are                                          | Read                                                                                                                                                             |
+| ------------------------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| A desk user sending and answering email          | [Reply threading](threading.md)                                                                                                                                  |
+| The administrator setting it up                  | [Install and upgrade](install.md), [Configuration](configuration.md), [Send mail through Cloudflare](sending.md) and [Receive mail from the relay](receiving.md) |
+| The administrator when something goes wrong      | [Limitations and troubleshooting](troubleshooting.md)                                                                                                            |
+| Whoever runs the relay, or writes another sender | [The webhook contract](webhook.md)                                                                                                                               |
+| A developer changing the app                     | [Development](development/README.md) and [How it works](development/architecture.md)                                                                             |
 
 ## Requirements
 
-- Frappe 16.
-- A Cloudflare account on the Workers Paid plan with the domain onboarded for **Email Sending**
-  and **Email Routing** enabled on the zone.
-- An API token with _Email Sending: Edit_ for outbound.
-- For inbound: the site reachable over https, with `host_name` set in its site config (the
-  webhook URL is built from it), and a tenant entry in the relay fleet.
+- A bench with Frappe v16. The app declares `frappe >=16.0.0,<17.0.0` and Python 3.14 or newer. It needs no other Frappe app.
+- A Cloudflare account on the Workers Paid plan, with the domain onboarded for Email Sending and Email Routing enabled on its zone.
+- A Cloudflare API token with the _Email Sending: Edit_ permission.
+- For incoming mail: the site reachable over HTTPS with `host_name` set in its site config, and a deployment of the [Cloudflare email relay](https://github.com/Avunu/cloudflare-email-relay) with a tenant entry for the site.
 
-## Setup
+> [!NOTE]
+> These pages describe the code in the repository. Where a statement depends on Frappe's own behaviour, the page says so; it was checked against Frappe 16.52.
 
-### Sending
+## Source and changes
 
-1. _Email Domain_: tick **Send via Cloudflare**, fill **Cloudflare Account ID** and **Cloudflare
-   API Token**. Saving verifies the token.
-2. _Email Account_: link the domain, set the address, tick **Enable Outgoing**. No password, no
-   SMTP.
+The source is at [github.com/Avunu/cloudflare_email_delivery](https://github.com/Avunu/cloudflare_email_delivery). Release notes are on the [GitHub releases page](https://github.com/Avunu/cloudflare_email_delivery/releases), and release-please writes them to `CHANGELOG.md` with the first release.
 
-### Receiving
-
-1. On the same Email Account tick **Enable Incoming**, choose **Append To** (ToDo, Issue, Lead, …)
-   and the usual options (auto-reply, attachment limit, notifications). Save.
-2. The **Cloudflare Email Receiving** section now shows the **Webhook URL** (_Copy Webhook URL_)
-   and, for System Managers, _Copy Webhook Secret_. Hand both to the relay fleet's onboarding as
-   the tenant's `inboundUrl` and `secret`, together with the domain(s) whose mail should reach this
-   site.
-3. In the zone's **Email Routing**, route the addresses (or the catch-all) to the relay Worker.
-
-_Regenerate Webhook Secret_ rotates the secret only; the URL stays, so only the tenant's relay
-secret needs updating afterwards (deliveries in between park as `rejected` on the relay and can be
-bulk-retried).
-
-### The webhook contract
-
-`POST /api/method/cloudflare_email_delivery.api.inbound?key=<key>`, body `message/rfc822`, headers:
-
-| Header                                | Meaning                                                                                      |
-| ------------------------------------- | -------------------------------------------------------------------------------------------- |
-| `X-Email-Relay-Id`                    | the relay's queue id (echoed back; deduplicates retries of a message without a `Message-ID`) |
-| `X-Email-Relay-Tenant`                | the tenant slug the relay routed by (logged)                                                 |
-| `X-Email-Relay-Timestamp`             | Unix seconds; rejected outside ± 300 s                                                       |
-| `X-Email-Relay-Signature`             | `v1=` + hex `HMAC-SHA256(secret, "<timestamp>." + body)`                                     |
-| `X-Email-Relay-Envelope-From` / `-To` | the SMTP envelope; written into the message as `Return-Path` / `Delivered-To` when absent    |
-
-| Response                                                                 | Meaning                                                                                              | Relay reaction        |
-| ------------------------------------------------------------------------ | ---------------------------------------------------------------------------------------------------- | --------------------- |
-| `200 {"message": {"ok": true, "remote_ref": "<Communication>" or null}}` | processed (`null`: our own mail looped back, deliberately ignored)                                   | delivered             |
-| `401`                                                                    | unknown key, incoming disabled, bad or missing signature, stale timestamp                            | parked as rejected    |
-| `413`                                                                    | larger than 26 MiB (or the site's `max_file_size`, when lower)                                       | parked as rejected    |
-| `422`                                                                    | recipient domain not this account's, invalid envelope, or the reference document refused the message | parked as rejected    |
-| `500`                                                                    | anything else — logged to Error Log and stored as an Unhandled Email                                 | retried with back-off |
-| `503`                                                                    | the relay user is missing: the site needs `bench migrate`                                            | retried with back-off |
-
-The endpoint is a guest method; the HMAC is the credential, checked in constant time. A `401`
-says nothing about which check failed. Once the signature verifies, the message is processed as
-`cloudflare-email-relay@relay.invalid`, a disabled Website User whose only role, _Cloudflare Email
-Relay_, adds one permission rule: read and write the Communications it owns. `bench migrate`
-creates the user and resets it to that shape; nothing runs as Administrator.
-
-## Limitations
-
-- Asynchronous bounces never reach Frappe: `Return-Path` is Cloudflare's and bounces go to its own
-  `cf-bounce` subdomain. Only the recipients Cloudflare rejects synchronously are surfaced.
-- Cloudflare rewrites `Message-ID`; reply matching relies on the replying client propagating
-  `References`, which every mainstream client does.
-- Limits: 5 MiB per message, 50 recipients, 20 custom headers of 2 KB each; headers outside
-  Cloudflare's allow-list (`Disposition-Notification-To`, …) are dropped.
-- Bcc'd recipients receive their copy but are not listed anywhere in the delivered message
-  (Frappe sends each recipient their own copy).
-
-## Development
-
-The tests, the mail guard and the source layout are described in [Development](development.md).
-
-## How it works
-
-| Hook                                        | Purpose                                                                                        |
-| ------------------------------------------- | ---------------------------------------------------------------------------------------------- |
-| `extend_doctype_class` → `Email Domain`     | verify the API token instead of SMTP/IMAP connections                                          |
-| `extend_doctype_class` → `Email Account`    | blank the server fields, generate the webhook key + secret, build the URL, no-op the IMAP pull |
-| `override_email_send` → `email_domain.send` | the Email Sending API call, with Frappe Mail / SMTP fallback for other accounts                |
-| `doctype_js` → `email_account.js`           | the copy / regenerate buttons                                                                  |
-| `api.inbound`                               | the webhook                                                                                    |
-| `after_install` / `after_migrate`           | create the relay user, role and permission rule, or reset them to least privilege              |
-| `before_uninstall`                          | remove the relay user, role and permission rule                                                |
-
-`cloudflare_api.py` (the API client) is shared with the Odoo module `mail_cloudflare` in
-[Avunu/avunu-odoo-addons](https://github.com/Avunu/avunu-odoo-addons); `relay.py` implements the
-contract documented in the relay's README.
-
-## Related
-
-- [`Avunu/cloudflare-email-relay`](https://github.com/Avunu/cloudflare-email-relay) — the Worker
-  and the full wire contract.
-
-## Part of the Cloudflare Email suite
-
-Four open-source projects work together to give business systems email without SMTP credentials or
-IMAP polling:
-
-| Project                                                                                 | Role                                                                                                                       |
-| --------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------- |
-| [cloudflare-email-relay](https://github.com/Avunu/cloudflare-email-relay)               | Multi-tenant inbound Worker: stores each message in R2, then delivers it to the right system with signed, retried requests |
-| [cloudflare_email_delivery](https://github.com/Avunu/cloudflare_email_delivery)         | Frappe and ERPNext adapter                                                                                                 |
-| [mail_cloudflare](https://github.com/Avunu/avunu-odoo-addons/tree/18.0/mail_cloudflare) | Odoo adapter                                                                                                               |
-| [wordpress-cloudflare-email](https://github.com/Avunu/wordpress-cloudflare-email)       | WordPress plugin: outbound mail and a delivery log                                                                         |
-
-Need it set up for your business? [Avunu](https://avunu.net) can help.
-
-## License
-
-[MIT](https://github.com/Avunu/cloudflare_email_delivery/blob/main/license.txt), Copyright (c) 2026–present Avunu LLC.
-`cloudflare_email_delivery/cloudflare_api.py` derives from the AGPL-3.0 Odoo module of the same
-author, relicensed here under MIT by its copyright holder, Avunu LLC.
+The app is one part of Avunu's Cloudflare Email suite, beside the relay, the Odoo module [mail_cloudflare](https://github.com/Avunu/avunu-odoo-addons/tree/18.0/mail_cloudflare) and the [WordPress plugin](https://github.com/Avunu/wordpress-cloudflare-email).
