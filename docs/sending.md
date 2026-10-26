@@ -49,7 +49,7 @@ Any other header is dropped, because Cloudflare would refuse the whole message f
 
 Within one send, the app retries a rate limit (HTTP 429) after the time Cloudflare's `Retry-After` header asks for (2 and then 4 seconds without one), and a server error or a network error after 1 and then 2 seconds, three attempts in all. No wait is longer than 10 seconds. Any other refusal is not retried.
 
-When the API call fails, Frappe records the error on the Email Queue entry and sets it back to **Not Sent** (or **Partially Sent** when other recipients already got their copy), and the scheduler tries it again later. After **Email Retry Limit** attempts (System Settings, 3 by default) the entry is set to **Error** and its owner gets a "Failed to send email" notification. That retry cycle is Frappe's behaviour, the same as for SMTP.
+When the API call fails, Frappe records the error on the Email Queue entry and sets it back to **Not Sent** (or **Partially Sent** when other recipients already got their copy), and the scheduler tries it again later. Once the entry has been retried **Email Retry Limit** times (System Settings, 3 by default), the next failure sets it to **Error** and its owner gets a notification, "Failed to send email with subject: …". That retry cycle is Frappe's behaviour, the same as for SMTP.
 
 Two cases fail at once:
 

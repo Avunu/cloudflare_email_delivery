@@ -35,7 +35,7 @@ Cloudflare did not confirm the token. The text after the colon says why:
 ### Saving an Email Account
 
 **"Webhook key already in use by Email Account …"**
-Two accounts hold the same webhook key, usually because the account was made with **Duplicate** from another one, which copies the key. Create the account as a new document instead; a new account gets a key of its own on its first save.
+Another Email Account already holds this account's webhook key. The app generates a random key for each account on its first save, and **Duplicate** does not copy the key, so this happens only when the key was written from outside the form, for example by a data import. Clear the key on one of the two accounts by the same route and save that account: an account without a key gets a new one on save. Then give its new **Webhook URL** to the relay.
 
 **"The webhook URL (…) must be https: set `host_name` in the site config to the site's public https address."**
 The site's address, as Frappe sees it, is plain `http`. Set `host_name` in the site config to the full `https://` address, for example `bench --site <SITE_NAME> set-config host_name https://erp.example.com`, and save again. The check is skipped on `localhost` and in developer mode.

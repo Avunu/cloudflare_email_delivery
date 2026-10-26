@@ -93,9 +93,9 @@ The design is described in [docs/development/architecture.md](docs/development/a
 - Incoming messages are limited by the site's request size: `max_file_size` in the site config, 25 MiB when it is not set.
 - Frappe calls only the first `override_email_send` hook of the installed apps, so another app installed earlier that registers it replaces this app's sending.
 
-More in [docs/troubleshooting.md](docs/troubleshooting.md).
-
 - Bcc recipients get their copy but are not listed anywhere in the delivered message, because Frappe sends each recipient a copy of its own.
+
+More in [docs/troubleshooting.md](docs/troubleshooting.md).
 
 <!-- frappe-nix:begin support -->
 
