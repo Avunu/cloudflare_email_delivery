@@ -15,6 +15,7 @@ Send and receive Frappe email through Cloudflare, with no SMTP or IMAP server
 [![Latest release](https://img.shields.io/github/v/release/Avunu/cloudflare_email_delivery)](https://github.com/Avunu/cloudflare_email_delivery/releases)
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue)](license.txt)
 [![Frappe v16](https://img.shields.io/badge/Frappe-v16-blue)](https://github.com/frappe/frappe/tree/version-16)
+[![Documentation](https://img.shields.io/badge/docs-docs.avunu.net-blue)](https://docs.avunu.net/cloudflare-email-delivery/)
 
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="docs/screenshots/webhook-dark.webp">
@@ -101,6 +102,7 @@ More in [docs/troubleshooting.md](docs/troubleshooting.md).
 
 ## Support
 
+- Documentation: [docs.avunu.net/cloudflare-email-delivery/](https://docs.avunu.net/cloudflare-email-delivery/)
 - Bug reports and questions: [GitHub issues](https://github.com/Avunu/cloudflare_email_delivery/issues)
 - E-mail: <mail@avu.nu>
 
