@@ -21,6 +21,6 @@ jobs:
   docs:
     permissions:
       contents: read # checkout
-    uses: Avunu/site-docs/.github/workflows/check-docs.yml@85b61bb4aa43d8bd0dd2ab3da8e27e950f34203b # 2026-10-25
+    uses: Avunu/site-docs/.github/workflows/check-docs.yml@28cfe09eae874d7502344872da82ac63612554c4 # 2026-10-25
     with:
       path: cloudflare-email-delivery
