@@ -38,7 +38,6 @@ docstring-code-format = true
 schema = 1
 profile = "github:Avunu/frappe-standards-profile/main"
 frappe-major = 16
-integration-branch = "main"
 
 [tool.frappe-nix.tests]
 # This app is a mail transport: the mail guard strips the Email Account and Email Domain

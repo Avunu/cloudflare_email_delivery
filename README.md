@@ -11,7 +11,7 @@ For license information, please see license.txt-->
 
 Send and receive Frappe email through Cloudflare, with no SMTP or IMAP server
 
-[![CI](https://github.com/Avunu/cloudflare_email_delivery/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/Avunu/cloudflare_email_delivery/actions/workflows/ci.yml)
+[![CI](https://github.com/Avunu/cloudflare_email_delivery/actions/workflows/ci.yml/badge.svg?branch=develop)](https://github.com/Avunu/cloudflare_email_delivery/actions/workflows/ci.yml)
 [![Latest release](https://img.shields.io/github/v/release/Avunu/cloudflare_email_delivery)](https://github.com/Avunu/cloudflare_email_delivery/releases)
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue)](license.txt)
 [![Frappe v16](https://img.shields.io/badge/Frappe-v16-blue)](https://github.com/frappe/frappe/tree/version-16)
@@ -66,7 +66,7 @@ bench --site <site> install-app cloudflare_email_delivery
 
 <!-- frappe-nix:end installation -->
 
-Until the first release creates the `version-16` branch, install from `main` instead: `bench get-app https://github.com/Avunu/cloudflare_email_delivery --branch main`.
+Until the first release creates the `version-16` branch, install from `develop` instead: `bench get-app https://github.com/Avunu/cloudflare_email_delivery --branch develop`.
 
 ## Configuration
 
