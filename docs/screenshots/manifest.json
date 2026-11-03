@@ -7,7 +7,7 @@
 		"readme": "feature",
 		"width": 2880,
 		"height": 1800,
-		"sha256": "41aaa29aeb33b597c39999501b61051cec2192d3e5d8945270f599e00eaef563"
+		"sha256": "55fc354d9a31752ffb61f6633a96a3dbc858ee48609301beef031728e3790187"
 	},
 	{
 		"name": "sending-domain",
@@ -17,7 +17,7 @@
 		"readme": "feature",
 		"width": 2880,
 		"height": 1800,
-		"sha256": "02d0fbb13fd445f8d629a537fe7679d8484d4bd01a6c194ff77d3c0cc0d551be"
+		"sha256": "88531c672c89c792a663ebc4dc8969f7b9b17ac34e47dbf7b7fd4b358c45565b"
 	},
 	{
 		"name": "threaded-reply",
@@ -27,7 +27,7 @@
 		"readme": "feature",
 		"width": 2880,
 		"height": 1800,
-		"sha256": "54d3b544620f4a3d068f7f086e1a0fb5c39b5d246f1cf369b0780232411f02f0"
+		"sha256": "a7bdb7ffac0d7dbc4a17e7552cb334e5ad9413740c0545165493efbc7853d8aa"
 	},
 	{
 		"name": "threaded-reply",
@@ -37,7 +37,7 @@
 		"readme": "feature",
 		"width": 2880,
 		"height": 1800,
-		"sha256": "b241c829305fa1a6dcbcbf6d31bd84af67c79e0e4e0578f938ffc627c2c13fe3"
+		"sha256": "bd9454ec24e919ce345df3aa22e4e2dc9dadf568f3714820eef68aaedf4be3b3"
 	},
 	{
 		"name": "webhook",
@@ -47,7 +47,7 @@
 		"readme": "hero",
 		"width": 2880,
 		"height": 1800,
-		"sha256": "6e9fe92ff83465c13dba66ceb98aa06fb1e8d6a77777248adda728a9ee5a6478"
+		"sha256": "b614eb5f938faac77c456f6ef54a83c839fddaaeb76eecea2aa34516530ce175"
 	},
 	{
 		"name": "webhook",
@@ -57,6 +57,6 @@
 		"readme": "hero",
 		"width": 2880,
 		"height": 1800,
-		"sha256": "7001d9f8b17c7e61a830b6feb338d96cf8b3261a35be6f4ad5a9ced1ab84d7bf"
+		"sha256": "4560c74a83088313e41d1922f50aaf5915be3097dfa243b9d7bcd32f2f719138"
 	}
 ]
