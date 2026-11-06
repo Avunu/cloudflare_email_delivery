@@ -424,6 +424,40 @@ def _retry_after(response):
 		return None
 
 
+def _verify_at(http, url, api_token):
+	"""One ``GET`` against a token-verify endpoint; see ``verify_token``."""
+	try:
+		response = http.get(
+			url,
+			headers={"Authorization": f"Bearer {api_token}"},
+			timeout=REQUEST_TIMEOUT,
+		)
+	except requests.RequestException as exc:
+		raise CloudflareEmailError(f"Could not reach Cloudflare: {exc}") from exc
+	payload = _parse_json(response)
+	status = response.status_code
+	if status in (401, 403):
+		raise CloudflareEmailError(
+			f"Cloudflare rejected the API token: {_describe(status, payload)}",
+			status=status,
+			code=_first_code(payload),
+			fatal=True,
+		)
+	if status != 200 or not payload or not payload.get("success"):
+		raise CloudflareEmailError(
+			f"Token verification failed: {_describe(status, payload)}",
+			status=status,
+			code=_first_code(payload),
+		)
+	result = payload.get("result") or {}
+	if result.get("status") != "active":
+		raise CloudflareEmailError(
+			f"The API token is not active (status: {result.get('status')!r}).",
+			status=status,
+		)
+	return result
+
+
 def verify_token(api_token, account_id=None, http=None):
 	"""Check that ``api_token`` is active and return Cloudflare's ``result``.
 
@@ -462,40 +496,6 @@ def verify_token(api_token, account_id=None, http=None):
 	finally:
 		if owns_http:
 			http.close()
-
-
-def _verify_at(http, url, api_token):
-	"""One ``GET`` against a token-verify endpoint; see ``verify_token``."""
-	try:
-		response = http.get(
-			url,
-			headers={"Authorization": f"Bearer {api_token}"},
-			timeout=REQUEST_TIMEOUT,
-		)
-	except requests.RequestException as exc:
-		raise CloudflareEmailError(f"Could not reach Cloudflare: {exc}") from exc
-	payload = _parse_json(response)
-	status = response.status_code
-	if status in (401, 403):
-		raise CloudflareEmailError(
-			f"Cloudflare rejected the API token: {_describe(status, payload)}",
-			status=status,
-			code=_first_code(payload),
-			fatal=True,
-		)
-	if status != 200 or not payload or not payload.get("success"):
-		raise CloudflareEmailError(
-			f"Token verification failed: {_describe(status, payload)}",
-			status=status,
-			code=_first_code(payload),
-		)
-	result = payload.get("result") or {}
-	if result.get("status") != "active":
-		raise CloudflareEmailError(
-			f"The API token is not active (status: {result.get('status')!r}).",
-			status=status,
-		)
-	return result
 
 
 class CloudflareSendingSession:
