@@ -9,6 +9,18 @@ app_license = "MIT"
 app_name = "cloudflare_email_delivery"
 app_publisher = "Avunu LLC"
 app_title = "Cloudflare Email Delivery"
+
+# Frappe's About dialog takes the logo from here. not_listed keeps the app off the apps screen.
+# app_logo_url would change the site's own logo.
+add_to_apps_screen = [
+	{
+		"name": "cloudflare_email_delivery",
+		"logo": "/assets/cloudflare_email_delivery/images/cloudflare_email_delivery-logo.svg",
+		"title": "Cloudflare Email Delivery",
+		"route": "/desk",
+		"has_permission": "cloudflare_email_delivery.apps_screen.not_listed",
+	}
+]
 app_version = __version__
 # Extensions, not overrides: each class subclasses the stock controller and calls super(),
 # so it stacks with any other app that extends or overrides the same DocType.
