@@ -3,7 +3,7 @@ title: Configuration
 description: Every setting Cloudflare Email Delivery reads, the site config keys it depends on, who may do what, and everything the app adds to a site.
 nav_title: Configuration
 order: 2
-updated: 2026-10-26
+updated: 2026-11-06
 ---
 
 The app has no settings page of its own. It is configured on two documents you already use, Email Domain and Email Account, plus a few keys of the site config. This page lists them, then lists everything the app adds to your site.
@@ -16,7 +16,7 @@ The **Cloudflare Email Sending** section sits at the end of the Email Domain for
 | ------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------- |
 | **Send via Cloudflare**   | Sends the mail of every Email Account on this domain through the Cloudflare Email Sending API, and lets those accounts receive from the relay. Saving the domain then checks the token instead of connecting to SMTP and IMAP servers. | Unticked |
 | **Cloudflare Account ID** | The ID of the Cloudflare account that owns the domain's Email Sending. Required when **Send via Cloudflare** is ticked.                                                                                                                | Empty    |
-| **Cloudflare API Token**  | An API token with the _Email Sending: Edit_ permission, stored encrypted. Required when **Send via Cloudflare** is ticked.                                                                                                             | Empty    |
+| **Cloudflare API Token**  | An account-owned or personal API token with the _Email Sending: Edit_ permission, stored encrypted. Required when **Send via Cloudflare** is ticked.                                                                                   | Empty    |
 
 The domain's own SMTP fields are hidden while **Send via Cloudflare** is ticked. Saving an Email Domain also re-saves every Email Account linked to it; that is Frappe's behaviour, and it keeps each account's webhook key and secret.
 

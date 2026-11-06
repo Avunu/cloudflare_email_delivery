@@ -44,7 +44,7 @@ class CloudflareEmailDomain(BaseEmailDomain):
 				_("Cloudflare Account ID and API Token are required when Send via Cloudflare is enabled.")
 			)
 		try:
-			cloudflare_api.verify_token(api_token)
+			cloudflare_api.verify_token(api_token, account_id=self.cf_account_id)
 		except CloudflareEmailError as error:
 			frappe.throw(
 				_("Cloudflare API token validation failed: {0}").format(str(error)),
