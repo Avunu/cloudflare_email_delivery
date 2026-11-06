@@ -28,6 +28,10 @@ Facts about the API this module encodes (verified against the docs on
   why the inbound side matches on ``References``, see ``inbound.py``).
 - Limits: 5 MiB per message, 16 KB of custom headers in total, 20 custom
   headers, 2 048 bytes per header value, 50 recipients.
+- Token checks (verified against Cloudflare's API reference on 2026-11-06):
+  ``GET /accounts/{account_id}/tokens/verify`` and ``GET /user/tokens/verify``
+  both return ``result: {id, status, ...}``. The reference does not say which
+  kind of token each one accepts, so ``verify_token`` tries both.
 """
 
 import base64
@@ -44,7 +48,8 @@ _logger = logging.getLogger("cloudflare_email_delivery.cloudflare_api")
 
 API_BASE = "https://api.cloudflare.com/client/v4"
 SEND_URL = API_BASE + "/accounts/{account_id}/email/sending/send"
-VERIFY_URL = API_BASE + "/user/tokens/verify"
+USER_VERIFY_URL = API_BASE + "/user/tokens/verify"
+ACCOUNT_VERIFY_URL = API_BASE + "/accounts/{account_id}/tokens/verify"
 
 MAX_RECIPIENTS = 50
 MAX_BODY_BYTES = 5 * 1024 * 1024
@@ -419,27 +424,56 @@ def _retry_after(response):
 		return None
 
 
-def verify_token(api_token, http=None):
-	"""Check that ``api_token`` is active via ``GET /user/tokens/verify``.
+def verify_token(api_token, account_id=None, http=None):
+	"""Check that ``api_token`` is active and return Cloudflare's ``result``.
+
+	Cloudflare checks the two kinds of token at different endpoints: an
+	account-owned token at ``GET /accounts/{account_id}/tokens/verify``, a
+	personal token at ``GET /user/tokens/verify``. With ``account_id`` the
+	account endpoint is tried first. If it answers with an error status, the
+	personal endpoint gets the token next, so either kind passes. A connection
+	failure, or an answer that the token is not active, is final. Without
+	``account_id`` only the personal endpoint is used.
 
 	Returns Cloudflare's ``result`` object (``{id, status, ...}``) and raises
-	``CloudflareEmailError`` otherwise; 401/403 are ``fatal``. ``http`` may be
-	any ``requests.Session``-like object (tests inject one).
+	``CloudflareEmailError`` otherwise; 401/403 are ``fatal``. When both
+	endpoints refuse the token, the account endpoint's error is raised.
+	``http`` may be any ``requests.Session``-like object (tests inject one).
 	"""
 	owns_http = http is None
 	http = http or requests.Session()
 	try:
+		if account_id is None:
+			return _verify_at(http, USER_VERIFY_URL, api_token)
 		try:
-			response = http.get(
-				VERIFY_URL,
-				headers={"Authorization": f"Bearer {api_token}"},
-				timeout=REQUEST_TIMEOUT,
-			)
-		except requests.RequestException as exc:
-			raise CloudflareEmailError(f"Could not reach Cloudflare: {exc}") from exc
+			return _verify_at(http, ACCOUNT_VERIFY_URL.format(account_id=account_id), api_token)
+		except CloudflareEmailError as exc:
+			# ``status`` is None when the request never got an answer and 200
+			# when the token was answered as inactive: neither is a refusal.
+			if exc.status is None or exc.status == 200:
+				raise
+			refusal = exc
+		try:
+			return _verify_at(http, USER_VERIFY_URL, api_token)
+		except CloudflareEmailError as exc:
+			if exc.fatal:
+				raise refusal from None
+			raise
 	finally:
 		if owns_http:
 			http.close()
+
+
+def _verify_at(http, url, api_token):
+	"""One ``GET`` against a token-verify endpoint; see ``verify_token``."""
+	try:
+		response = http.get(
+			url,
+			headers={"Authorization": f"Bearer {api_token}"},
+			timeout=REQUEST_TIMEOUT,
+		)
+	except requests.RequestException as exc:
+		raise CloudflareEmailError(f"Could not reach Cloudflare: {exc}") from exc
 	payload = _parse_json(response)
 	status = response.status_code
 	if status in (401, 403):
@@ -457,7 +491,10 @@ def verify_token(api_token, http=None):
 		)
 	result = payload.get("result") or {}
 	if result.get("status") != "active":
-		raise CloudflareEmailError(f"The API token is not active (status: {result.get('status')!r}).")
+		raise CloudflareEmailError(
+			f"The API token is not active (status: {result.get('status')!r}).",
+			status=status,
+		)
 	return result
 
 

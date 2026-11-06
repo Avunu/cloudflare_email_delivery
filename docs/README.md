@@ -3,7 +3,7 @@ title: Cloudflare Email Delivery
 description: Send and receive Frappe email through Cloudflare, with no SMTP or IMAP server to run or poll.
 nav_title: Overview
 order: 0
-updated: 2026-10-26
+updated: 2026-11-06
 ---
 
 Running email for a Frappe or ERPNext site usually means SMTP credentials for sending, an IMAP mailbox the scheduler polls for receiving, and a mail provider in between. Cloudflare Email Delivery replaces both for sites whose domains are on Cloudflare. Outgoing mail goes straight from Frappe to the Cloudflare Email Sending API. Incoming mail is pushed to the site by the [Cloudflare email relay](https://github.com/Avunu/cloudflare-email-relay), a Cloudflare Worker, over a signed HTTPS webhook, and Frappe processes it the way it processes mail it pulls from a mailbox: **Append To**, auto-replies, attachments, notifications and reply threading work as before.
@@ -48,7 +48,7 @@ The webhook answers each delivery with a status code that tells the relay whethe
 
 - A bench with Frappe v16. The app declares `frappe >=16.0.0,<17.0.0` and Python 3.14 or newer. It needs no other Frappe app.
 - A Cloudflare account on the Workers Paid plan, with the domain onboarded for Email Sending and Email Routing enabled on its zone.
-- A Cloudflare API token with the _Email Sending: Edit_ permission.
+- A Cloudflare API token with the _Email Sending: Edit_ permission, account-owned or personal.
 - For incoming mail: the site reachable over HTTPS with `host_name` set in its site config, and a deployment of the [Cloudflare email relay](https://github.com/Avunu/cloudflare-email-relay) with a tenant entry for the site.
 
 > [!NOTE]

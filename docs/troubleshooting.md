@@ -3,7 +3,7 @@ title: Limitations and troubleshooting
 description: What Cloudflare Email Delivery cannot do, and the error messages you may meet when saving, sending or receiving, with their causes and fixes.
 nav_title: Troubleshooting
 order: 8
-updated: 2026-10-26
+updated: 2026-11-06
 ---
 
 ## Limitations
@@ -25,12 +25,12 @@ Fill in both fields, or untick **Send via Cloudflare**.
 **"Cloudflare API token validation failed: …"** (titled "Outgoing email account not correct")
 Cloudflare did not confirm the token. The text after the colon says why:
 
-| It continues with                                               | Cause and fix                                                                                        |
-| --------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------- |
-| "Cloudflare rejected the API token: HTTP 401 …" or "HTTP 403 …" | The token is wrong or revoked. Create a new token in Cloudflare and paste it in again.               |
-| "The API token is not active (status: …)."                      | The token exists but is disabled or expired. Re-enable it in Cloudflare or create a new one.         |
-| "Token verification failed: …"                                  | Cloudflare answered with another error, named after the colon. Try again; check Cloudflare's status. |
-| "Could not reach Cloudflare: …"                                 | The server could not connect to `api.cloudflare.com`. Check the server's outbound network and proxy. |
+| It continues with                                               | Cause and fix                                                                                                                                                                       |
+| --------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| "Cloudflare rejected the API token: HTTP 401 …" or "HTTP 403 …" | The token is wrong or revoked, or an account-owned token does not belong to the **Cloudflare Account ID**. Check the ID, or create a new token in Cloudflare and paste it in again. |
+| "The API token is not active (status: …)."                      | The token exists but is disabled or expired. Re-enable it in Cloudflare or create a new one.                                                                                        |
+| "Token verification failed: …"                                  | Cloudflare answered with another error, named after the colon. Try again; check Cloudflare's status.                                                                                |
+| "Could not reach Cloudflare: …"                                 | The server could not connect to `api.cloudflare.com`. Check the server's outbound network and proxy.                                                                                |
 
 ### Saving an Email Account
 

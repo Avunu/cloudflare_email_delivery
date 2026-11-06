@@ -209,7 +209,7 @@ class TestEmailDomain(IntegrationTestCase):
 		):
 			domain.validate_outgoing_server_conn()
 		core.assert_not_called()
-		verify.assert_called_once_with(API_TOKEN)
+		verify.assert_called_once_with(API_TOKEN, account_id=ACCOUNT_ID)
 
 	def test_rejected_token(self):
 		domain = get_domain()

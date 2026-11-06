@@ -70,7 +70,7 @@ Until the first release creates the `version-16` branch, install from `develop` 
 
 ## Configuration
 
-You need a Cloudflare account on the Workers Paid plan, with the domain onboarded for **Email Sending** and **Email Routing** enabled on its zone, and an API token with _Email Sending: Edit_. For incoming mail the site must be reachable over https with `host_name` set in its site config (the webhook URL is built from it), and the relay needs a tenant entry for the site.
+You need a Cloudflare account on the Workers Paid plan, with the domain onboarded for **Email Sending** and **Email Routing** enabled on its zone, and an API token with _Email Sending: Edit_, account-owned (_Manage account → Account API tokens_) or personal (_My Profile → API Tokens_). For incoming mail the site must be reachable over https with `host_name` set in its site config (the webhook URL is built from it), and the relay needs a tenant entry for the site.
 
 1. On the **Email Domain**, tick **Send via Cloudflare** and fill in **Cloudflare Account ID** and **Cloudflare API Token**. Saving verifies the token.
 2. On the **Email Account**, link the domain, set the address and tick **Enable Outgoing**. There is no password and no SMTP server to fill in.

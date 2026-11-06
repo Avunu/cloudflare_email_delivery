@@ -3,14 +3,14 @@ title: Send mail through Cloudflare
 description: Point an Email Domain at Cloudflare Email Sending, set up the Email Accounts on it, and see what is sent and what happens when a send fails.
 nav_title: Sending
 order: 3
-updated: 2026-10-26
+updated: 2026-11-06
 ---
 
 Outgoing mail keeps going through Frappe's Email Queue as before. What changes is the last step: instead of handing each message to an SMTP server, the app posts it to the Cloudflare Email Sending API.
 
 ## Before you start
 
-- In Cloudflare: the domain onboarded for Email Sending, and an API token with the _Email Sending: Edit_ permission. Note the ID of the Cloudflare account that owns the domain.
+- In Cloudflare: the domain onboarded for Email Sending, and an account-owned API token (_Manage account → Account API tokens_) with the _Email Sending: Edit_ permission. A personal API token (_My Profile → API Tokens_) with the same permission also works. Note the ID of the Cloudflare account that owns the domain.
 - In Frappe: a System Manager login, and the app installed ([Install and upgrade](install.md)).
 
 ## Set up the Email Domain

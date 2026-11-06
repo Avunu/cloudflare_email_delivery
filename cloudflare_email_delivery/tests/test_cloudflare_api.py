@@ -16,10 +16,11 @@ from requests.structures import CaseInsensitiveDict
 
 from cloudflare_email_delivery import cloudflare_api
 from cloudflare_email_delivery.cloudflare_api import (
+	ACCOUNT_VERIFY_URL,
 	MAX_HEADER_VALUE_BYTES,
 	MAX_RECIPIENTS,
 	SEND_URL,
-	VERIFY_URL,
+	USER_VERIFY_URL,
 	CloudflareEmailError,
 	CloudflareSendingSession,
 	build_payload,
@@ -127,7 +128,7 @@ class ScriptedHttp:
 
 	@classmethod
 	def _default(cls, record):
-		if record["url"] == VERIFY_URL:
+		if record["url"].endswith("/tokens/verify"):
 			return (
 				200,
 				{
@@ -458,11 +459,14 @@ class TestSession(unittest.TestCase):
 
 
 class TestVerifyToken(unittest.TestCase):
+	EXPIRED = (200, {"success": True, "errors": [], "result": {"status": "expired"}})
+	ACCOUNT_URL = ACCOUNT_VERIFY_URL.format(account_id=ACCOUNT_ID)
+
 	def test_active(self):
 		http = ScriptedHttp()
 		self.assertEqual(verify_token("secret-token", http=http)["status"], "active")
 		[request] = http.requests
-		self.assertEqual((request["method"], request["url"]), ("GET", VERIFY_URL))
+		self.assertEqual((request["method"], request["url"]), ("GET", USER_VERIFY_URL))
 		self.assertEqual(request["headers"]["Authorization"], "Bearer secret-token")
 
 	def test_rejected_inactive_unreachable(self):
@@ -470,10 +474,56 @@ class TestVerifyToken(unittest.TestCase):
 			verify_token("bad", http=ScriptedHttp([error(401, 1000, "Invalid API Token")]))
 		self.assertTrue(raised.exception.fatal)
 		with self.assertRaises(CloudflareEmailError) as raised:
-			verify_token(
-				"old",
-				http=ScriptedHttp([(200, {"success": True, "errors": [], "result": {"status": "expired"}})]),
-			)
+			verify_token("old", http=ScriptedHttp([self.EXPIRED]))
 		self.assertIn("expired", str(raised.exception))
 		with self.assertRaises(CloudflareEmailError):
 			verify_token("x", http=ScriptedHttp([requests.ConnectionError("dns")]))
+
+	def test_account_token_active(self):
+		# an account-owned token is answered by the account endpoint: one request
+		http = ScriptedHttp()
+		result = verify_token("account-token", account_id=ACCOUNT_ID, http=http)
+		self.assertEqual(result["status"], "active")
+		[request] = http.requests
+		self.assertEqual((request["method"], request["url"]), ("GET", self.ACCOUNT_URL))
+		self.assertEqual(request["headers"]["Authorization"], "Bearer account-token")
+
+	def test_personal_token_falls_back_to_user_endpoint(self):
+		# the account endpoint refuses a personal token; the user endpoint accepts it
+		http = ScriptedHttp([error(401, 1000, "Invalid API Token")])
+		result = verify_token("personal-token", account_id=ACCOUNT_ID, http=http)
+		self.assertEqual(result["status"], "active")
+		self.assertEqual([r["url"] for r in http.requests], [self.ACCOUNT_URL, USER_VERIFY_URL])
+		self.assertEqual(http.requests[1]["headers"]["Authorization"], "Bearer personal-token")
+
+	def test_personal_token_inactive_reported_from_user_endpoint(self):
+		# after the fallback, the personal token's own status is what gets reported
+		http = ScriptedHttp([error(401, 1000, "Invalid API Token"), self.EXPIRED])
+		with self.assertRaises(CloudflareEmailError) as raised:
+			verify_token("old-personal", account_id=ACCOUNT_ID, http=http)
+		self.assertFalse(raised.exception.fatal)
+		self.assertIn("expired", str(raised.exception))
+		self.assertEqual(len(http.requests), 2)
+
+	def test_rejected_by_both_endpoints_reports_the_account_error(self):
+		http = ScriptedHttp([error(403, 9109, "Account refusal"), error(401, 1000, "User refusal")])
+		with self.assertRaises(CloudflareEmailError) as raised:
+			verify_token("bad-token", account_id=ACCOUNT_ID, http=http)
+		self.assertTrue(raised.exception.fatal)
+		self.assertIn("Account refusal", str(raised.exception))
+		self.assertEqual(len(http.requests), 2)
+
+	def test_account_token_inactive_is_final(self):
+		# an answer that the account token is expired is not a refusal: no fallback
+		http = ScriptedHttp([self.EXPIRED])
+		with self.assertRaises(CloudflareEmailError) as raised:
+			verify_token("old-token", account_id=ACCOUNT_ID, http=http)
+		self.assertFalse(raised.exception.fatal)
+		self.assertIn("expired", str(raised.exception))
+		self.assertEqual(len(http.requests), 1)
+
+	def test_account_endpoint_unreachable_is_final(self):
+		http = ScriptedHttp([requests.ConnectionError("dns")])
+		with self.assertRaises(CloudflareEmailError):
+			verify_token("token", account_id=ACCOUNT_ID, http=http)
+		self.assertEqual(len(http.requests), 1)
