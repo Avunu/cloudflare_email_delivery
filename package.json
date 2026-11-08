@@ -16,7 +16,7 @@
 	},
 	"devDependencies": {
 		"@types/node": "^26.6.6",
-		"frappe-types": "^16.5.0",
+		"frappe-types": "^16.6.0",
 		"globals": "^17.14.0",
 		"jiti": "^2.7.0",
 		"oxfmt": "^0.76.0",
