@@ -8,8 +8,6 @@
 // Type-checked with checkJs: `frm.doc` is the Email Account from types/doctypes.d.ts
 // (frappe-types gen-registry), custom fields included.
 
-/** @typedef {{ message?: string }} SecretResponse `cloudflare_email_delivery.api.get_webhook_secret` */
-
 /** @type {frappe.ui.form.FormEvents<"Email Account">} */
 const email_account_events = {
 	/** @param {frappe.ui.form.Form<"Email Account">} frm */
@@ -35,7 +33,9 @@ const email_account_events = {
 						method: "cloudflare_email_delivery.api.get_webhook_secret",
 						args: { email_account: frm.doc.name },
 					})
-					.then((/** @type {SecretResponse} */ r) => frappe.utils.copy_to_clipboard(r.message ?? "")),
+					.then((/** @type {import("frappe-types").FrappeResponse<string>} */ r) =>
+						frappe.utils.copy_to_clipboard(r.message ?? ""),
+					),
 			group,
 		);
 		frm.add_custom_button(
