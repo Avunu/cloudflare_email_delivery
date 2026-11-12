@@ -16,11 +16,11 @@
 	},
 	"devDependencies": {
 		"@types/node": "^26.6.6",
-		"frappe-types": "^16.6.0",
+		"frappe-types": "^16.7.1",
 		"globals": "^17.14.0",
 		"jiti": "^2.7.0",
-		"oxfmt": "^0.77.0",
-		"oxlint": "^1.92.0",
+		"oxfmt": "^0.78.0",
+		"oxlint": "^1.93.0",
 		"typescript": "^7.0.2"
 	},
 	"engines": {
