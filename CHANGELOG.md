@@ -1,5 +1,17 @@
 # Changelog
 
+## [16.1.0](https://github.com/Avunu/cloudflare_email_delivery/compare/v16.0.0...v16.1.0) (2026-11-14)
+
+
+### Features
+
+* show the app's logo in the About dialog, on frappe-nix 2.4.0 ([#73](https://github.com/Avunu/cloudflare_email_delivery/issues/73)) ([7dac98a](https://github.com/Avunu/cloudflare_email_delivery/commit/7dac98aaaf9dec651c8d2f21b43d5a9a42ce802e))
+
+
+### Bug Fixes
+
+* **email-domain:** accept account-owned API tokens in the token check ([#71](https://github.com/Avunu/cloudflare_email_delivery/issues/71)) ([ecbccb1](https://github.com/Avunu/cloudflare_email_delivery/commit/ecbccb13fc3306e88efab13acd136aad0e74c7de))
+
 ## [16.0.0](https://github.com/Avunu/cloudflare_email_delivery/compare/v0.1.0...v16.0.0) (2026-10-30)
 
 
