@@ -19,8 +19,8 @@
 		"frappe-types": "^16.7.1",
 		"globals": "^17.14.0",
 		"jiti": "^2.7.0",
-		"oxfmt": "^0.79.0",
-		"oxlint": "^1.94.0",
+		"oxfmt": "^0.80.0",
+		"oxlint": "^1.95.0",
 		"typescript": "^7.0.2"
 	},
 	"engines": {
